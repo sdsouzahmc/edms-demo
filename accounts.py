@@ -18,9 +18,9 @@ MODULES = {  # key -> (label, emoji, colour)
     "6": ("Search & Retrieval", "🔎", "#4A90C2"), "7": ("Audit, Governance & Reporting", "🧾", "#1F3864"), "8": ("Records, Archiving & Disposal", "🗄️", "#8D6E63"),
     "9": ("My Workspace", "💼", "#2E8B8B"), "10": ("Administration & Integrations", "⚙️", "#6B7280"), "11": ("RFP Coverage", "✅", "#2E7D32"),
     "12": ("Auto-Distribution", "📬", "#C0603C"), "13": ("Analytics & Insights", "📊", "#6C4FA3"), "14": ("User Management", "👥", "#1F6F78"),
-    "15": ("Role Management", "🔐", "#B00020"),
+    "15": ("Role Management", "🔐", "#B00020"), "16": ("Ask EDMS — Search Assistant", "🤖", "#2E8B8B"),
 }
-ALL = list(MODULES)
+ALL = [m for m in MODULES if m != "16"]   # 16 (assistant) is available to every signed-in role
 OPS = ["home", "1", "2", "3", "4", "6", "7", "8", "9", "12", "13"]
 MGR = ["home", "1", "3", "4", "6", "7", "9", "12", "13"]
 
@@ -142,7 +142,7 @@ def allowed_modules(user):
     u = conn.execute("SELECT role FROM app_users WHERE username=?", (user,)).fetchone()
     conn.close()
     r = role(u["role"]) if u else None
-    return set(r["modules"]) if r else {"home"}
+    return (set(r["modules"]) | {"16"}) if r else {"home", "16"}
 
 
 def has_perm(user, perm):

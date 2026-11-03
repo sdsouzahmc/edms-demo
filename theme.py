@@ -70,6 +70,11 @@ def inject_css():
     st.markdown(f"""
     <style>
     [data-testid="stSidebarNav"] {{ display: none; }}
+    .efs-nbs {{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }}
+    .efs-nb {{ display:inline-flex; align-items:center; gap:5px; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28); border-radius:20px; padding:3px 4px 3px 9px; font-size:.72rem; color:#fff; }}
+    .efs-nb .n {{ background:var(--c); color:#fff; font-weight:800; border-radius:12px; min-width:22px; text-align:center; padding:1px 7px; font-size:.74rem; box-shadow:0 0 0 2px rgba(255,255,255,.55); }}
+    .efs-nb .e {{ font-size:.85rem; }}
+    @media (max-width: 900px) {{ .efs-nb .l {{ display:none; }} }}
     #MainMenu, footer, [data-testid="stToolbarActions"], [data-testid="stDeployButton"], [data-testid="stAppDeployButton"],
     [data-testid="stMainMenu"], [data-testid="stStatusWidget"], [data-testid="stDecoration"], .stDeployButton, .viewerBadge_container__r5tak,
     [class*="viewerBadge"], [data-testid="stHeaderActionElements"] {{ display: none !important; visibility: hidden !important; }}
@@ -209,13 +214,19 @@ def topbar(title: str, subtitle: str = ""):
     key = title.split(" ")[0].strip("·") if title[:1].isdigit() else "home"
     ic = icons.svg(icons.PAGE_ICON.get(key, "document"), 26, "#FFFFFF", 1.6)
     check_access(key)
+    import badges
+    bc = badges.counts(current_user(), prof["dept"], is_admin())
+    chips = "".join(
+        f'<span class="efs-nb" title="{lbl}" style="--c:{col}"><span class="e">{em}</span><span class="l">{tr(lbl)}</span><span class="n">{bc[k]}</span></span>'
+        for k, lbl, em, col, _p in badges.CHIPS if bc.get(k))
     st.markdown(f"""
     <div class="efs-topbar">
         <div style="display:flex;gap:14px;align-items:center">
             <span class="efs-topicon">{ic}</span>
             <div><h1>{tr(title)}</h1><div class="sub">{tr(subtitle)}</div></div>
         </div>
-        <div class="efs-badge" style="display:flex;align-items:center;gap:10px;padding:6px 14px 6px 8px">{icons.avatar(current_user(), 34, "#2E8B8B")}<div style="line-height:1.2"><div style="font-weight:700;font-size:.9rem">{current_user()}</div><div style="opacity:.85">{prof['role']} · {prof['dept']}</div></div></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end"><div class="efs-nbs">{chips}</div>
+        <div class="efs-badge" style="display:flex;align-items:center;gap:10px;padding:6px 14px 6px 8px">{icons.avatar(current_user(), 34, "#2E8B8B")}<div style="line-height:1.2"><div style="font-weight:700;font-size:.9rem">{current_user()}</div><div style="opacity:.85">{prof['role']} · {prof['dept']}</div></div></div></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -240,14 +251,14 @@ PAGE_FILES = {
     "home": "home_view.py", "1": "wg1_correspondence.py", "2": "wg2_ocr.py", "3": "wg3_document_control.py",
     "4": "wg4_workflow.py", "5": "wg5_security.py", "6": "wg6_search.py", "7": "wg7_audit.py",
     "8": "wg8_records.py", "9": "wg9_workspace.py", "10": "wg10_admin.py", "11": "wg11_coverage.py", "12": "wg12_distribution.py",
-    "13": "wg13_analytics.py", "14": "wg14_users.py", "15": "wg15_roles.py",
+    "13": "wg13_analytics.py", "14": "wg14_users.py", "15": "wg15_roles.py", "16": "wg16_assistant.py",
 }
 NAV = [("home", "Home / Lifecycle Story"), ("1", "1 · Correspondence & Intake"), ("2", "2 · OCR & Intelligent Capture"),
        ("3", "3 · Document Control & Versioning"), ("4", "4 · Workflow & Approvals"), ("5", "5 · Security & Compliance"),
        ("6", "6 · Search & Retrieval"), ("7", "7 · Audit, Governance & Reporting"), ("8", "8 · Records, Archiving & Disposal"),
        ("9", "9 · My Workspace"), ("10", "10 · Administration & Integrations"), ("11", "11 · RFP Coverage"), ("12", "12 · Auto-Distribution"),
        ("13", "13 · Analytics & Insights"),
-       ("14", "14 · User Management"), ("15", "15 · Role Management")]
+       ("14", "14 · User Management"), ("15", "15 · Role Management"), ("16", "16 · Ask EDMS — Search Assistant")]
 
 
 def _label(label):
@@ -370,6 +381,8 @@ def sidebar_nav():
                 ".st-key-navmenu a p { font-weight:600; font-size:.8rem; white-space:normal; line-height:1.15; }"
                 '[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"][aria-current="page"] { box-shadow: 0 0 0 2px #1F386433; }'
                 "</style>", unsafe_allow_html=True)
+    import badges
+    _bc = badges.counts(current, prof["dept"], (prof["level"] == "admin"))
     with st.sidebar:
         st.markdown(f'<div style="font-size:.7rem;color:{GREY};margin:-6px 0 -10px 2px">🌐 {tr("Language")}</div>', unsafe_allow_html=True)
         _lang_switch()
@@ -389,7 +402,8 @@ def sidebar_nav():
             for k, label in NAV:
                 if k in allowed:
                     with st.container(key=f"nav_{k}"):
-                        st.page_link(PAGE_FILES[k], label=_label(label), icon=accounts.MODULES[k][1])
+                        n = _bc.get(badges.MENU.get(k, ""), 0) if k in badges.MENU else 0
+                        st.page_link(PAGE_FILES[k], label=_label(label) + (f"  🔴 {n}" if n else ""), icon=accounts.MODULES[k][1])
         st.divider()
         try:
             import db_ext

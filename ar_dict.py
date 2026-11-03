@@ -363,3 +363,10 @@ AR_MAP.update({
 
 AR_MAP.update({"All actions": "كل الإجراءات", "actions": "إجراءات", "Opened in viewer": "فُتح في العارض", "with watermark": "مع علامة مائية",
     "standardised to naming convention": "توحيد حسب اصطلاح التسمية", "review comments incorporated": "دُمجت ملاحظات المراجعة", "re-assessed": "أُعيد تقييمه"})
+
+AR_MAP.update({"Notifications": "الإشعارات", "Awaiting approval": "بانتظار الاعتماد", "SLA overdue": "تجاوز المهلة", "Triage queue": "طابور الفرز", "Expiring ≤90d": "تنتهي ≤٩٠ يوماً", "Legal holds": "حجوزات قانونية",
+    "16 · Ask EDMS — Search Assistant": "١٦ · اسأل النظام — مساعد البحث", "Ask EDMS — Search Assistant": "اسأل النظام — مساعد البحث",
+    "Type or speak a question · the assistant finds the documents and shows what matters about each one": "اكتب أو تحدّث بسؤالك · يجد المساعد المستندات ويعرض أهم تفاصيل كل منها",
+    "Ask for a document… e.g. “pending finance invoices” or press 🎤": "اطلب مستنداً… مثال: «فواتير مالية معلقة» أو اضغط 🎤",
+    "Workflow stage": "مرحلة سير العمل", "Owner": "المالك", "Created": "تاريخ الإنشاء", "Expires": "ينتهي", "Routed to": "وُجّه إلى", "Last activity": "آخر نشاط", "Sender → recipient": "المرسل ← المستلم",
+    "Security": "الأمان", "Clear conversation": "مسح المحادثة", "Open": "فتح", "Saved": "محفوظ"})

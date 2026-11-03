@@ -8,6 +8,12 @@ theme.inject_css()
 theme.sidebar_nav()
 import icons
 theme.userbar()
+import badges
+_bc = badges.counts(theme.current_user(), theme.current_profile()['dept'], theme.is_admin())
+_chips = ''.join(f'<span class="efs-nb" style="--c:{c};background:#fff;color:#1F3864;border-color:#E2E6EC"><span class="e">{e}</span><span class="l">{theme.tr(l)}</span><span class="n">{_bc[k]}</span></span>' for k,l,e,c,_p in badges.CHIPS if _bc.get(k))
+if _chips:
+    st.markdown(f'<div class="efs-nbs" style="justify-content:flex-start;margin:-2px 0 10px 0">{_chips}</div>', unsafe_allow_html=True)
+st.page_link(theme.PAGE_FILES['16'], label='🤖 Ask EDMS — type or speak to find any document', icon=None)
 st.markdown(f"""
 <div class="efs-hero">
   <div>
