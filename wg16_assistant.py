@@ -46,41 +46,38 @@ with st.container(key="sugg"):
     if cols[i].button(s, key=f"sg_{i}", use_container_width=True):
         st.session_state["pending_q"] = s
 
-vc1, vc2 = st.columns([1, 3])
-with vc1:
-    _voice_html = """
-    <div style="font-family:Source Sans Pro,Segoe UI,sans-serif;display:flex;gap:8px;align-items:center">
-      <button id="mic" style="border:0;border-radius:24px;padding:9px 16px;background:linear-gradient(120deg,#1F3864,#2E8B8B);color:#fff;font-weight:700;cursor:pointer;font-size:14px">🎤 Speak</button>
-      <select id="lg" style="border:1px solid #cbd5e1;border-radius:8px;padding:7px;font-size:13px"><option value="en-US">English</option><option value="ar-SA">العربية</option></select>
-      <span id="st" style="font-size:12px;color:#6B7280"></span>
-    </div>
-    <script>
-    const mic=document.getElementById('mic'), st=document.getElementById('st'), lg=document.getElementById('lg');
-    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SR){ st.textContent='Voice input needs Chrome or Edge'; mic.disabled=true; mic.style.opacity=.5; }
-    else{
-      const r=new SR(); r.interimResults=false; r.maxAlternatives=1;
-      mic.onclick=()=>{ r.lang=lg.value; try{ r.start(); st.textContent='🔴 Listening…'; }catch(e){} };
-      r.onerror=e=>{ st.textContent = e.error==='not-allowed' ? 'Allow the microphone in the browser' : 'Voice error: '+e.error; };
-      r.onend=()=>{ if(st.textContent.startsWith('🔴')) st.textContent=''; };
-      r.onresult=e=>{
-        const text=e.results[0][0].transcript; st.textContent='“'+text+'”';
-        const doc=window.parent.document;
-        const ta=doc.querySelector('[data-testid="stChatInput"] textarea');
-        if(ta){
-          const setter=Object.getOwnPropertyDescriptor(window.parent.HTMLTextAreaElement.prototype,'value').set;
-          setter.call(ta,text); ta.dispatchEvent(new Event('input',{bubbles:true}));
-          setTimeout(()=>{ const b=doc.querySelector('[data-testid="stChatInputSubmitButton"]'); if(b) b.click(); },250);
-        }
-      };
-    }
-    </script>"""
-    try:
-        st.iframe(_voice_html, height=64)
-    except Exception:
-        components.html(_voice_html, height=64)
-with vc2:
-    st.caption("🎤 Voice: press Speak, say your question, and it is sent automatically (Chrome / Edge, microphone permission required).")
+_voice_html = """
+<script>
+(function(){
+  const P=window.parent, doc=P.document, LANG="__LANG__";
+  const SR=P.SpeechRecognition||P.webkitSpeechRecognition;
+  function setup(){
+    const sub=doc.querySelector('[data-testid="stChatInputSubmitButton"]');
+    if(!sub||doc.getElementById('edms-mic')) return;
+    const b=doc.createElement('button'); b.id='edms-mic'; b.type='button'; b.title= SR ? 'Speak your question' : 'Voice input needs Chrome or Edge';
+    b.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>';
+    b.style.cssText='border:0;background:transparent;color:#1F3864;cursor:pointer;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;margin-right:4px;flex:none;transition:all .15s;'+(SR?'':'opacity:.4');
+    sub.parentElement.insertBefore(b, sub);
+    if(!doc.getElementById('edms-mic-css')){ const st=doc.createElement('style'); st.id='edms-mic-css';
+      st.textContent='#edms-mic:hover{background:#E8EEF7!important} #edms-mic.on{background:#C0603C!important;color:#fff!important;animation:edmspulse 1.1s infinite} @keyframes edmspulse{0%{box-shadow:0 0 0 0 rgba(192,96,60,.55)}100%{box-shadow:0 0 0 12px rgba(192,96,60,0)}}';
+      doc.head.appendChild(st); }
+    if(!SR) return;
+    const r=new SR(); r.interimResults=true; r.maxAlternatives=1; let final='';
+    const ta=()=>doc.querySelector('[data-testid="stChatInput"] textarea');
+    const put=t=>{const x=ta(); if(!x) return; Object.getOwnPropertyDescriptor(P.HTMLTextAreaElement.prototype,'value').set.call(x,t); x.dispatchEvent(new Event('input',{bubbles:true}));};
+    r.onresult=e=>{ let t=''; for(let i=0;i<e.results.length;i++){ t+=e.results[i][0].transcript; } final=t; put(t); };
+    r.onerror=e=>{ b.classList.remove('on'); if(e.error==='not-allowed'){ b.title='Allow the microphone for this site in the browser'; } };
+    r.onend=()=>{ b.classList.remove('on'); if(final.trim()){ setTimeout(()=>{ const s=doc.querySelector('[data-testid="stChatInputSubmitButton"]'); if(s) s.click(); },200); final=''; } };
+    b.onclick=()=>{ if(b.classList.contains('on')){ r.stop(); return; } final=''; r.lang=LANG; try{ r.start(); b.classList.add('on'); }catch(err){} };
+  }
+  setup(); new P.MutationObserver(setup).observe(doc.body,{childList:true,subtree:true});
+})();
+</script>""".replace("__LANG__", "ar-SA" if theme.lang() == "ar" else "en-US")
+try:
+    st.iframe(_voice_html, height=1)
+except Exception:
+    components.html(_voice_html, height=1)
+st.caption("🎤 Tap the microphone inside the box, speak, and the question is sent automatically · uses the interface language (English / العربية) · Chrome or Edge.")
 
 
 def card(d, o=None):
