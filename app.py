@@ -3,9 +3,20 @@ import db
 import db_ext
 
 st.set_page_config(page_title="EDMS Demo", page_icon="📁", layout="wide")
+import os, glob
+# one-time reset if a database from an older demo version is present
+_marker = os.path.join(db.DB_DIR, ".seed_rfp1")
+if os.path.exists(db.DB_PATH) and not os.path.exists(_marker):
+    for _f in glob.glob(db.DB_PATH + "*"):
+        try:
+            os.remove(_f)
+        except OSError:
+            pass
+os.makedirs(db.DB_DIR, exist_ok=True)
 db.init_db()
 db_ext.init_ext()
 db.ensure_seeded()
+open(_marker, 'w').write('rfp1')
 
 pages = [
     st.Page("home_view.py", title="Home", icon="🏠", default=True),
