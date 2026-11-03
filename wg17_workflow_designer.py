@@ -18,7 +18,7 @@ st.markdown(f"{theme.tag_custom('Visual designer — no code, changes apply to n
 
 # --------------------------------------------------------------- scope ------
 live = wd.all_published()
-live_opts = {f"{r['department']} · {r['doc_type'] or 'department default'} — {r['name']} (v{r['version']})": (r["department"], r["doc_type"] or "") for r in live}
+live_opts = {f"{r['department']} · {r['doc_type'] or 'department default'} — {r['name']} · {wd.flow_kind(json.loads(r['steps'])).split(" ")[1]}": (r["department"], r["doc_type"] or "") for r in live}
 if "wfd_dept" not in st.session_state and live:          # open on a live design instead of an empty scope
     pick = next((r for r in live if r["department"] == "Legal"), live[0])
     st.session_state["wfd_dept"], st.session_state["wfd_type"] = pick["department"], pick["doc_type"] or ""
@@ -197,7 +197,7 @@ with tabs[3]:
     st.markdown(f"**{len(rows)}** visual design(s) are live. Open one to see the flow; use the department / document type selectors above to edit it.")
     for r in rows:
         ss = json.loads(r["steps"])
-        with st.expander(f"🟢 {r['department']} · {r['doc_type'] or 'department default'} — {r['name']} (v{r['version']}) · {len(ss)} steps"):
+        with st.expander(f"🟢 {r['department']} · {r['doc_type'] or 'department default'} — {r['name']} (v{r['version']}) · {len(ss)} steps · {wd.flow_kind(ss)}"):
             st.caption(f"{r['note'] or ''}  ·  published by {r['updated_by']} · {r['updated_at'][:16]}")
             st.markdown(wd.svg(ss, per_row=5), unsafe_allow_html=True)
             st.button("✏ Open in Designer", key=f"open_{r['id']}", on_click=_goto, args=(r["department"], r["doc_type"] or ""))

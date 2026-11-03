@@ -289,20 +289,34 @@ SAMPLES = [  # dept, doc_type, name, note, steps: (kind, name, assignee, sla, es
     ("Clinical Operations", "SOP", "Clinical SOP publication", "Clinical and quality review, acknowledgment by staff",
      [("Clinical", "Clinical Review", "(owner department)", 48, False, "Always", ""), ("Quality", "Quality Review", "QRI", 48, False, "Always", "", "Parallel with previous", "All must approve"),
       ("Approval", "Approval", "(owner department)", 24, True, "Always", ""), ("Acknowledge", "Acknowledgment", "Nursing", 72, False, "Always", "")]),
+    ("Finance", "Payment Approval", "Sequential 5-level payment approval", "Strictly one after another: review, head of department, finance, executive, final approval",
+     [("Review", "Department Review", "(owner department)", 12, False, "Always", ""), ("Approval", "Head of Dept Approval", "(owner department)", 24, True, "Always", ""),
+      ("Sign-off", "Finance Sign-off", "Finance", 24, True, "Always", ""), ("Executive", "Executive Approval", "Executive Offices", 48, True, "Always", ""),
+      ("Approval", "Final Approval", "Finance", 12, True, "Always", "")]),
+    ("Procurement", "Tender", "Sequential tender evaluation", "Procurement → Legal → Finance → Executive, each level waits for the previous",
+     [("Review", "Procurement Review", "(owner department)", 48, False, "Always", ""), ("Legal", "Legal Review", "Legal", 48, False, "Always", ""),
+      ("Sign-off", "Finance Sign-off", "Finance", 48, True, "Always", ""), ("Executive", "Executive Approval", "Executive Offices", 72, True, "Always", "")]),
+    ("Security", "Inspection Report", "Two-level inspection approval", "Sequential: security review then approval",
+     [("Review", "Department Review", "(owner department)", 24, False, "Always", ""), ("Approval", "Approval", "(owner department)", 24, True, "Always", "")]),
+    ("HR", "Appraisal", "Performance appraisal chain", "Line review, HR approval, executive acknowledgment — in order",
+     [("Review", "Line Manager Review", "(owner department)", 72, False, "Always", ""), ("Approval", "HR Approval", "(owner department)", 48, True, "Always", ""),
+      ("Acknowledge", "Acknowledgment", "Executive Offices", 72, False, "Always", "")]),
     ("Marketing", "Campaign Document", "Marketing material approval", "Fast-track with executive approval for external material",
      [("Approval", "Approval", "(owner department)", 12, True, "Always", ""), ("Executive", "Executive Approval", "Executive Offices", 48, True, "Classification is", "External")]),
 ]
 
 
+def flow_kind(steps):
+    gs = grouped(steps)
+    if any(len(g) > 1 for g in gs):
+        return "⫴ Hybrid (sequential + parallel)" if any(len(g) == 1 for g in gs) else "⫴ Parallel"
+    return "➡ Sequential"
+
+
 def seed_samples():
-    conn = db.get_conn()
-    n = conn.execute("SELECT COUNT(*) FROM workflow_designs").fetchone()[0]
-    has_par = any('"Parallel with previous"' in r[0] for r in conn.execute("SELECT steps FROM workflow_designs WHERE status='Published'"))
-    conn.close()
-    if n and has_par:
-        return
+    """Publish any sample design whose scope has no live design yet (safe to run on every start)."""
     for dept, dtype, name, note, st_ in SAMPLES:
-        if n and not any(len(x) > 7 for x in st_):      # upgrade path: only re-publish the designs that use parallel steps
+        if latest(dept, dtype, "Published"):
             continue
         steps = []
         for kind, sname, assignee, sla, esign, cond, cval, *rest in st_:
