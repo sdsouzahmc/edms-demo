@@ -17,6 +17,30 @@ can_publish = theme.is_admin()
 st.markdown(f"{theme.tag_custom('Visual designer — no code, changes apply to new documents immediately')}", unsafe_allow_html=True)
 
 # --------------------------------------------------------------- scope ------
+live = wd.all_published()
+live_opts = {f"{r['department']} · {r['doc_type'] or 'department default'} — {r['name']} (v{r['version']})": (r["department"], r["doc_type"] or "") for r in live}
+if "wfd_dept" not in st.session_state and live:          # open on a live design instead of an empty scope
+    pick = next((r for r in live if r["department"] == "Legal"), live[0])
+    st.session_state["wfd_dept"], st.session_state["wfd_type"] = pick["department"], pick["doc_type"] or ""
+
+
+def _open_live():
+    c = st.session_state.get("wfd_live")
+    if c in live_opts:
+        st.session_state["wfd_dept"], st.session_state["wfd_type"] = live_opts[c]
+        st.session_state["wfd_tpl"] = "—"
+        st.session_state["wfd_live"] = "— choose —"
+
+
+def _goto(d, t):
+    st.session_state["wfd_dept"], st.session_state["wfd_type"] = d, t
+    st.session_state["wfd_tpl"] = "—"
+    st.session_state["wfd_goto"] = True
+
+
+if live_opts:
+    st.selectbox("🟢 Open a live design", ["— choose —"] + list(live_opts), key="wfd_live", on_change=_open_live,
+                 help="Jump straight to any published workflow to view, copy or improve it.")
 s1, s2, s3 = st.columns([1.3, 1.3, 1.6])
 dept = s1.selectbox("Department", rfp_data.DEPARTMENTS, key="wfd_dept")
 dtype = s2.selectbox("Document type (blank = department default)", [""] + rfp_data.DOC_TYPES, key="wfd_type",
@@ -34,6 +58,8 @@ with s3:
         st.session_state["wfd_steps"] = steps = wd.from_template(tpl)
         st.session_state["wfd_tpl_applied"] = (scope, tpl)
         st.session_state["wfd_sel"] = None
+if st.session_state.pop("wfd_goto", False):
+    st.toast("Loaded — open the 🧩 Designer tab to edit")
 st.caption(("Live design: **v%d** · %s · published %s by %s" % (pub["version"], pub["name"], pub["updated_at"][:16], pub["updated_by"]))
            if pub else "No visual design published for this scope yet — new documents use the default chain shown below.")
 
@@ -174,3 +200,4 @@ with tabs[3]:
         with st.expander(f"🟢 {r['department']} · {r['doc_type'] or 'department default'} — {r['name']} (v{r['version']}) · {len(ss)} steps"):
             st.caption(f"{r['note'] or ''}  ·  published by {r['updated_by']} · {r['updated_at'][:16]}")
             st.markdown(wd.svg(ss, per_row=5), unsafe_allow_html=True)
+            st.button("✏ Open in Designer", key=f"open_{r['id']}", on_click=_goto, args=(r["department"], r["doc_type"] or ""))
