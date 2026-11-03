@@ -265,18 +265,20 @@ def create_document(title, department, classification, security_level, doc_type,
     import wfdesign
     design = wfdesign.resolve(department, doc_type, classification, security_level)
     if design is not None:           # a published visual design governs this document
-        plan = [("Draft", department, None, 0)]
-        for s in design:
-            plan.append((s["name"], department if s["assignee"] == "(owner department)" else s["assignee"], s["sla_h"], 1 if s["esign"] else 0))
-        plan.append(("Released", department, None, 0))
+        plan = [("Draft", department, None, 0, 0, "All")]
+        for gi, grp_ in enumerate(wfdesign.grouped(design), start=1):
+            for s in grp_:
+                plan.append((s["name"], department if s["assignee"] == "(owner department)" else s["assignee"], s["sla_h"], 1 if s["esign"] else 0,
+                             gi, "Any" if grp_[0].get("join") == "Any one approves" else "All"))
+        plan.append(("Released", department, None, 0, len(plan) + 1, "All"))
     else:
-        plan = [(st_, department if i == 0 else None, None, 0) for i, st_ in enumerate(db_ext.stages_for(department, doc_type))]
-    for i, (stage, assignee, sla, esg) in enumerate(plan):
-        status = "active" if i == 0 else "pending"
+        plan = [(st_, department if i == 0 else None, None, 0, i, "All") for i, st_ in enumerate(db_ext.stages_for(department, doc_type))]
+    for i, (stage, assignee, sla, esg, gi, jr) in enumerate(plan):
+        status = "active" if gi == 0 else "pending"
         cur.execute("""
-            INSERT INTO workflow (document_id, stage, stage_order, status, assignee, sla_hours, esign_required)
-            VALUES (?,?,?,?,?,?,?)
-        """, (doc_id, stage, i, status, assignee, sla, esg))
+            INSERT INTO workflow (document_id, stage, stage_order, status, assignee, sla_hours, esign_required, par_group, join_rule)
+            VALUES (?,?,?,?,?,?,?,?,?)
+        """, (doc_id, stage, i, status, assignee, sla, esg, gi, jr))
     conn.commit()
     conn.close()
     log_audit(doc_id, created_by, "Created", f"{code} — {title}")
@@ -433,41 +435,58 @@ def get_pending_for_assignee(assignee_dept_or_all, is_admin_user=False):
     return rows
 
 
-def advance_workflow(doc_id, action, actor, comment=""):
-    """action: 'approve' or 'reject'. Advances to next stage or finalizes release."""
+def advance_workflow(doc_id, action, actor, comment="", workflow_id=None):
+    """action: 'approve' or 'reject'. Handles sequential stages and parallel groups
+    (rows sharing a par_group are active together; join rule 'All' or 'Any')."""
     conn = get_conn()
     cur = conn.cursor()
-    active = cur.execute("SELECT * FROM workflow WHERE document_id=? AND status='active'", (doc_id,)).fetchone()
+    if workflow_id:
+        active = cur.execute("SELECT * FROM workflow WHERE id=? AND document_id=? AND status='active'", (workflow_id, doc_id)).fetchone()
+    else:
+        active = cur.execute("SELECT * FROM workflow WHERE document_id=? AND status='active' ORDER BY stage_order", (doc_id,)).fetchone()
     if not active:
         conn.close()
         return False
     ts = now()
+    grp = lambda r: r["par_group"] if r["par_group"] is not None else r["stage_order"]
+    g = grp(active)
     _old_status = cur.execute("SELECT status FROM documents WHERE id=?", (doc_id,)).fetchone()["status"]
+    rows = cur.execute("SELECT * FROM workflow WHERE document_id=? ORDER BY stage_order", (doc_id,)).fetchall()
+    peers = [r for r in rows if grp(r) == g and r["id"] != active["id"]]
     if action == "approve":
         cur.execute("UPDATE workflow SET status='done', acted_by=?, acted_at=?, comment=? WHERE id=?",
                     (actor, ts, comment, active["id"]))
-        nxt = cur.execute("SELECT * FROM workflow WHERE document_id=? AND stage_order=?",
-                           (doc_id, active["stage_order"] + 1)).fetchone()
-        if nxt:
-            cur.execute("UPDATE workflow SET status='active' WHERE id=?", (nxt["id"],))
-            cur.execute("UPDATE documents SET status=?, modified_by=?, modified_at=? WHERE id=?",
-                        (nxt["stage"], actor, ts, doc_id))
-            if nxt["stage"] == "Released":
-                # Released is the terminal stage: finalize immediately, no extra click
-                qr = make_qr_token()
-                cur.execute("UPDATE workflow SET status='done', acted_by=?, acted_at=? WHERE id=?",
-                            (actor, ts, nxt["id"]))
-                cur.execute("""UPDATE documents SET status='Released', is_published=1, qr_token=?,
-                             released_at=?, modified_by=?, modified_at=? WHERE id=?""",
-                            (qr, ts, actor, ts, doc_id))
-                cur.execute("UPDATE versions SET status='Published' WHERE id = (SELECT id FROM versions WHERE document_id=? ORDER BY id DESC LIMIT 1)",
-                            (doc_id,))
-        log_msg = ("Approved", f"{active['stage']} stage approved")
+        join_any = (active["join_rule"] or "All") == "Any"
+        open_peers = [r for r in peers if r["status"] == "active"]
+        if join_any:
+            for r in open_peers:
+                cur.execute("UPDATE workflow SET status='skipped', comment=? WHERE id=?", (f"Not needed — {active['stage']} approved (join: any one)", r["id"]))
+            open_peers = []
+        if open_peers:                       # parallel group still waiting on other branches
+            waiting = ", ".join(r["stage"] for r in open_peers)
+            log_msg = ("Approved", f"{active['stage']} approved (parallel) — still waiting for: {waiting}")
+        else:
+            later = sorted({grp(r) for r in rows if grp(r) > g})
+            if later:
+                nxt_rows = [r for r in rows if grp(r) == later[0]]
+                for r in nxt_rows:
+                    cur.execute("UPDATE workflow SET status='active' WHERE id=?", (r["id"],))
+                names = " + ".join(r["stage"] for r in nxt_rows)
+                cur.execute("UPDATE documents SET status=?, modified_by=?, modified_at=? WHERE id=?", (names, actor, ts, doc_id))
+                if len(nxt_rows) == 1 and nxt_rows[0]["stage"] == "Released":
+                    qr = make_qr_token()
+                    cur.execute("UPDATE workflow SET status='done', acted_by=?, acted_at=? WHERE id=?", (actor, ts, nxt_rows[0]["id"]))
+                    cur.execute("""UPDATE documents SET status='Released', is_published=1, qr_token=?,
+                                 released_at=?, modified_by=?, modified_at=? WHERE id=?""", (qr, ts, actor, ts, doc_id))
+                    cur.execute("UPDATE versions SET status='Published' WHERE id = (SELECT id FROM versions WHERE document_id=? ORDER BY id DESC LIMIT 1)", (doc_id,))
+            log_msg = ("Approved", f"{active['stage']} stage approved" + (" (parallel group complete)" if peers else ""))
     else:
         cur.execute("UPDATE workflow SET status='rejected', acted_by=?, acted_at=?, comment=? WHERE id=?",
                      (actor, ts, comment, active["id"]))
-        cur.execute("UPDATE documents SET status='Rejected', modified_by=?, modified_at=? WHERE id=?",
-                    (actor, ts, doc_id))
+        for r in peers:
+            if r["status"] == "active":
+                cur.execute("UPDATE workflow SET status='cancelled', comment='Cancelled — parallel branch rejected' WHERE id=?", (r["id"],))
+        cur.execute("UPDATE documents SET status='Rejected', modified_by=?, modified_at=? WHERE id=?", (actor, ts, doc_id))
         log_msg = ("Rejected", f"{active['stage']} stage rejected — {comment}")
     _new_status = cur.execute("SELECT status FROM documents WHERE id=?", (doc_id,)).fetchone()["status"]
     conn.commit()

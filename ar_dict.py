@@ -380,3 +380,6 @@ AR_MAP.update({"17 · Workflow Designer": "١٧ · مصمّم سير العمل"
     "↩ Restore & publish": "↩ استعادة ونشر", "Resulting path:": "المسار الناتج:", "Review": "مراجعة", "Approval": "اعتماد", "Sign-off": "اعتماد مالي", "Legal": "قانوني", "Quality": "جودة", "Clinical": "سريري", "Executive": "تنفيذي", "Acknowledge": "إقرار", "Notify": "إشعار",
     "Always": "دائماً", "Classification is": "التصنيف هو", "Security level at least": "مستوى الأمان على الأقل", "Document type is finance-related": "نوع المستند مالي", "Document type is": "نوع المستند هو",
     "Any approver": "أي معتمِد", "Head of department": "رئيس القسم", "Two approvers (all must approve)": "معتمِدان (يجب موافقة الجميع)", "(owner department)": "(قسم مالك المستند)"})
+
+AR_MAP.update({"Execution": "طريقة التنفيذ", "Sequential": "تسلسلي", "Parallel with previous": "متوازٍ مع السابق", "When the parallel group finishes": "عند انتهاء المجموعة المتوازية",
+    "All must approve": "يجب موافقة الجميع", "Any one approves": "يكفي اعتماد واحد", "Resulting path:": "المسار الناتج:"})

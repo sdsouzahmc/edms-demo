@@ -76,6 +76,16 @@ with tabs[0]:
                                      index=["Any approver", "Head of department", "Two approvers (all must approve)"].index(s.get("role", "Any approver")), key=f"r_{sel}")
             s["sla_h"] = d2.number_input("SLA (hours)", 1, 720, int(s["sla_h"]), key=f"sla_{sel}")
             s["esign"] = d3.checkbox("✍ Electronic signature required", s["esign"], key=f"es_{sel}")
+            x1, x2 = st.columns(2)
+            s["mode"] = x1.selectbox("Execution", ["Sequential", "Parallel with previous"],
+                                     index=["Sequential", "Parallel with previous"].index(s.get("mode", "Sequential")), key=f"md_{sel}",
+                                     disabled=i == 0, help="Sequential: starts after the previous step finishes. Parallel: starts at the same time as the previous step.")
+            if i == 0:
+                s["mode"] = "Sequential"
+            s["join"] = x2.selectbox("When the parallel group finishes", ["All must approve", "Any one approves"],
+                                     index=["All must approve", "Any one approves"].index(s.get("join", "All must approve")), key=f"jn_{sel}",
+                                     disabled=s["mode"] == "Sequential" and not (i + 1 < len(steps) and steps[i + 1].get("mode") == "Parallel with previous"),
+                                     help="Applies to the whole parallel group (taken from its first step).")
             e1, e2 = st.columns(2)
             s["cond"] = e1.selectbox("Run this step", wd.COND_FIELDS, index=wd.COND_FIELDS.index(s["cond"]), key=f"c_{sel}")
             if s["cond"] == "Classification is":
@@ -132,11 +142,15 @@ with tabs[1]:
     dt_ = q3.selectbox("Document type", rfp_data.DOC_TYPES, key="sim_dt")
     active = {s["id"] for s in steps if wd.matches(s, cl, sl, dt_)}
     st.markdown(wd.svg(steps, active=active), unsafe_allow_html=True)
-    path = ["Draft"] + [s["name"] for s in steps if s["id"] in active] + ["Released"]
-    st.markdown("**Resulting path:** " + " → ".join(f"`{p}`" for p in path))
-    total = sum(s["sla_h"] for s in steps if s["id"] in active)
-    sg = sum(1 for s in steps if s["id"] in active and s["esign"])
-    st.markdown(f"Target turnaround **{total} h** (≈ {total / 24:.1f} days) · **{sg}** e-signature(s) · **{len(active)}** of **{len(steps)}** steps apply.")
+    on = [s for s in steps if s["id"] in active]
+    gs = wd.grouped(on)
+    parts = ["Draft"] + [(g[0]["name"] if len(g) == 1 else "[ " + " ‖ ".join(x["name"] for x in g) + (" · any one" if g[0].get("join") == "Any one approves" else " · all") + " ]") for g in gs] + ["Released"]
+    st.markdown("**Resulting path:** " + " → ".join(f"`{p}`" for p in parts))
+    total = sum(max(x["sla_h"] for x in g) for g in gs)          # a parallel group takes as long as its slowest branch
+    seq_total = sum(x["sla_h"] for x in on)
+    sg = sum(1 for x in on if x["esign"])
+    st.markdown(f"Target turnaround **{total} h** (≈ {total / 24:.1f} days)" + (f" — **{seq_total - total} h faster** than running everything one after another ({seq_total} h)" if seq_total > total else "")
+                + f" · **{sg}** e-signature(s) · **{len(on)}** of **{len(steps)}** steps apply.")
 
 with tabs[2]:
     hist = wd.history(dept, dtype)

@@ -42,7 +42,7 @@ with tab1:
                 if st.button("✅ Approve", key=f"appr_{w['id']}", type="primary"):
                     sig = db_ext.log_esign(w["document_id"], theme.current_user(), w["stage"])
                     db.advance_workflow(w["document_id"], "approve", theme.current_user(),
-                                         f"Approved via e-signature {sig}")
+                                         f"Approved via e-signature {sig}", workflow_id=w["id"])
                     nxt = db.get_document(w["document_id"])
                     for sub in set(db_ext.subscribers_of(w["document_id"], nxt["classification"])):
                         db_ext.notify(sub, f"{nxt['doc_code']} moved to {nxt['status']}.", w["document_id"], "approval")
@@ -63,7 +63,7 @@ with tab1:
             if st.session_state.get(f"reject_box_{w['id']}"):
                 reason = st.text_input("Rejection reason", key=f"reason_{w['id']}")
                 if st.button("Confirm Rejection", key=f"confirm_rej_{w['id']}"):
-                    db.advance_workflow(w["document_id"], "reject", theme.current_user(), reason or "No reason given")
+                    db.advance_workflow(w["document_id"], "reject", theme.current_user(), reason or "No reason given", workflow_id=w["id"])
                     st.session_state[f"reject_box_{w['id']}"] = False
                     st.rerun()
             st.divider()
