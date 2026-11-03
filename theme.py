@@ -110,6 +110,19 @@ def inject_css():
 
     div[data-testid="stMetricValue"] {{ color: {NAVY}; }}
     .stButton button[kind="primary"] {{ background: {CORAL}; border-color: {CORAL}; }}
+
+    @media (max-width: 768px) {{
+        .block-container {{ padding: 3.2rem 0.8rem 2rem 0.8rem !important; }}
+        .efs-topbar {{ flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 14px; }}
+        .efs-topbar h1 {{ font-size: 1.05rem; }}
+        .efs-badge {{ font-size: 0.7rem; }}
+        .efs-metric .val {{ font-size: 1.25rem; }}
+        .efs-card {{ padding: 12px 12px; overflow-wrap: anywhere; }}
+        .efs-step {{ font-size: 0.7rem; padding: 4px 8px; }}
+        .stButton button {{ width: 100%; min-height: 44px; }}
+        div[data-testid="stHorizontalBlock"] {{ gap: 0.5rem; }}
+        .stTabs [role="tablist"] {{ overflow-x: auto; }}
+    }}
     </style>
     """, unsafe_allow_html=True)
 
