@@ -70,10 +70,15 @@ def inject_css():
     st.markdown(f"""
     <style>
     [data-testid="stSidebarNav"] {{ display: none; }}
-    #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDeployButton"], [data-testid="stAppDeployButton"],
+    #MainMenu, footer, [data-testid="stToolbarActions"], [data-testid="stDeployButton"], [data-testid="stAppDeployButton"],
     [data-testid="stMainMenu"], [data-testid="stStatusWidget"], [data-testid="stDecoration"], .stDeployButton, .viewerBadge_container__r5tak,
     [class*="viewerBadge"], [data-testid="stHeaderActionElements"] {{ display: none !important; visibility: hidden !important; }}
     header[data-testid="stHeader"] {{ background: transparent !important; height: 2.2rem; }}
+    [data-testid="stToolbar"] {{ display: flex !important; visibility: visible !important; }}
+    [data-testid="stExpandSidebarButton"], [data-testid="stSidebarCollapsedControl"], [data-testid="collapsedControl"] {{
+        display: flex !important; visibility: visible !important; opacity: 1 !important; }}
+    html body button[data-testid="stExpandSidebarButton"] {{ background: #FFFFFF !important; color: #1F3864 !important; border: 1px solid #1F3864 !important; border-radius: 10px !important; padding: 6px 8px !important; box-shadow: 0 2px 6px rgba(31,56,100,.25); }}
+    html body button[data-testid="stExpandSidebarButton"] *, html body button[data-testid="stExpandSidebarButton"] svg {{ fill: #1F3864 !important; color: #1F3864 !important; }}
     {RTL_CSS}
     html, body, [class*="css"] {{ font-family: 'Segoe UI', -apple-system, sans-serif; }}
     .stApp {{ background: {BG}; }}
