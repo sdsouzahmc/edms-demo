@@ -11,6 +11,7 @@ theme.topbar("11 · RFP Coverage", "Traceability: RFP requirement group → prop
 # (RFP ref, requirement group, M/O, proposal key, demo page, status)
 D, P, N = "Demonstrated", "Partly demonstrated", "Not in demo"
 ROWS = [
+    ("Reporting", "Operational analytics: scanning/OCR quality, workload & SLA, routing, search usage, repository, compliance risk, ROI", "M", "C", "13 · Analytics & Insights", D),
     ("1.0", "Mask patient PII/PHI from infrastructure roles & data in transit", "M", "CC", "5 · Security › Masking", D),
     ("1.1, 1.41", "Central repository for all content types & formats", "M", "C", "3 · Document Control", P),
     ("1.2", "Large file sizes", "M", "C", "— (platform capability)", N),

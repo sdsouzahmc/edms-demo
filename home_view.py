@@ -56,6 +56,8 @@ with left:
          theme.PAGE_FILES["10"]),
         ("12", "Auto-Distribution", "OCR text → content rules → routed to departments, copies, SLA acknowledgement, triage queue",
          theme.PAGE_FILES["12"]),
+        ("13", "Analytics & Insights", "50+ live charts: scanning & OCR quality, workload & SLA, routing, search, repository, compliance risk, ROI model",
+         theme.PAGE_FILES["13"]),
         ("11", "RFP Coverage", "Traceability from every RFP requirement group to where this demo proves it",
          theme.PAGE_FILES["11"]),
     ]
