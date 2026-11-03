@@ -36,7 +36,7 @@ with left:
     steps = [
         ("1", "Correspondence & Intake", "Register the incoming letter, auto-number it, classify it, generate a QR code",
          theme.PAGE_FILES["1"]),
-        ("2", "OCR & Intelligent Capture", "Scan it, OCR in English/Arabic, auto-extract metadata, auto-name it",
+        ("2", "OCR & Intelligent Capture", "Scan it, OCR in English/Arabic, auto-extract metadata, auto-classify it, route it to the right department — or run a whole batch hands-free",
          theme.PAGE_FILES["2"]),
         ("3", "Document Control & Versioning", "Check-in/out, create v1.0 → v2.0, compare, publish official version",
          theme.PAGE_FILES["3"]),
@@ -44,7 +44,7 @@ with left:
          theme.PAGE_FILES["4"]),
         ("5", "Security & Compliance", "Switch roles to see RBAC in action — who can see/edit/approve what",
          theme.PAGE_FILES["5"]),
-        ("6", "Search & Retrieval", "Find it by number, metadata, full text, or OCR content — security-trimmed",
+        ("6", "Search & Retrieval", "Ranked full-text search across documents and OCR'd scans — Boolean, phrase, wildcard, typo-tolerant, facets, security-trimmed",
          theme.PAGE_FILES["6"]),
         ("7", "Audit, Governance & Reporting", "See the immutable audit trail and compliance dashboards",
          theme.PAGE_FILES["7"]),
@@ -54,6 +54,8 @@ with left:
          theme.PAGE_FILES["9"]),
         ("10", "Administration & Integrations", "AD/SSO sync, Outlook, Office 365, EMR, multi-site, DR, backup & point-in-time restore",
          theme.PAGE_FILES["10"]),
+        ("12", "Auto-Distribution", "OCR text → content rules → routed to departments, copies, SLA acknowledgement, triage queue",
+         theme.PAGE_FILES["12"]),
         ("11", "RFP Coverage", "Traceability from every RFP requirement group to where this demo proves it",
          theme.PAGE_FILES["11"]),
     ]

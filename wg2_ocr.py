@@ -1,12 +1,15 @@
 import streamlit as st
 from PIL import Image
 import db
+import db_ext
+import distribution as dist
 import theme
 from ocr_utils import run_ocr, extract_metadata, auto_name
-from sample_docs import generate_samples
+from sample_docs import generate_samples, ASSETS_DIR
 import os
 
 db.init_db()
+dist.init_dist()
 theme.inject_css()
 theme.sidebar_nav()
 theme.topbar("2 · OCR & Intelligent Capture Workgroup",
@@ -73,7 +76,6 @@ if run_clicked:
     elif chosen:
         img = Image.open(chosen).convert("RGB")
         source_name = os.path.basename(chosen)
-
     if img is None:
         st.error("Select or upload an image first.")
     else:
@@ -89,61 +91,98 @@ if run_clicked:
         if zonal:
             w_, h_ = img.size
             img = img.crop((0, int(h_ * zy0 / 100), w_, max(int(h_ * zy1 / 100), int(h_ * zy0 / 100) + 20)))
-        st.image(img, caption="Image sent to OCR (after enhancement" + (" · zonal crop" if zonal else "") + ")", width=300)
         with st.spinner("Running Tesseract OCR engine…"):
             text = run_ocr(img, lang=lang_map[lang_choice])
-        meta = extract_metadata(text)
-        auto_title = auto_name(meta, source_name)
+        st.session_state["ocr_res"] = {"n": st.session_state.get("ocr_res", {}).get("n", 0) + 1, "text": text, "img": img,
+                                       "source": source_name, "lang": lang_map[lang_choice], "zonal": zonal, "file_to": file_to}
 
-        st.markdown('<div class="efs-section-title">✅ OCR Result — Operator Verification</div>',
-                     unsafe_allow_html=True)
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown("**Extracted text (editable before save)**")
-            edited_text = st.text_area("OCR text", value=text.strip(), height=320, label_visibility="collapsed")
-        with c2:
-            st.markdown("**Auto-extracted metadata**")
-            if meta:
-                for k, v in meta.items():
-                    st.markdown(f"- **{k}**: {v}")
-            else:
-                st.caption("No structured fields detected automatically — operator can fill in manually below.")
-            st.markdown("**Suggested auto-generated filename**")
-            st.code(auto_title or "UNTITLED-DOC")
+res = st.session_state.get("ocr_res")
+if res:
+    n_ = res["n"]
+    st.image(res["img"], caption="Image sent to OCR (after enhancement" + (" · zonal crop" if res["zonal"] else "") + ")", width=300)
+    st.markdown('<div class="efs-section-title">✅ OCR Result — Operator Verification</div>', unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("**Extracted text (editable before save)**")
+        edited_text = st.text_area("OCR text", value=res["text"].strip(), height=320, label_visibility="collapsed", key=f"ocr_text_{n_}")
+    meta = extract_metadata(edited_text)
+    auto_title = auto_name(meta, res["source"])
+    decision = dist.analyse(edited_text, auto_title, meta.get("Sender", ""))
+    with c2:
+        st.markdown("**Auto-extracted metadata**")
+        if meta:
+            for k, v in meta.items():
+                st.markdown(f"- **{k}**: {v}")
+        else:
+            st.caption("No structured fields detected automatically — operator can fill in manually below.")
+        st.markdown("**Suggested auto-generated filename**")
+        st.code(auto_title or "UNTITLED-DOC")
+        st.markdown("**📬 Automatic distribution (content rules)**")
+        if decision["hits"]:
+            top = decision["hits"][0]
+            st.success(f"Rule **{top['rule']['name']}** matched ({', '.join(top['matched'][:4])}) → **{decision['primary']}**"
+                       + (f"; copies to {', '.join(decision['copies'])}" if decision["copies"] else ""))
+        else:
+            st.warning("No distribution rule matched — the item will go to the triage queue.")
+        auto = st.checkbox("Distribute automatically on save (recommended)", value=True, key=f"auto_{n_}")
+        pdept = decision["primary"] if (auto and decision["primary"]) else db.DEPARTMENTS[0]
+        dept = st.selectbox("Assign to Department", db.DEPARTMENTS, index=db.DEPARTMENTS.index(pdept) if pdept in db.DEPARTMENTS else 0,
+                            key=f"ocr_dept_{n_}_{pdept}", disabled=auto and bool(decision["primary"]))
+        classification = st.selectbox("Classification", db.CLASSIFICATIONS,
+                                      index=db.CLASSIFICATIONS.index(decision["classification"]) if auto and decision["classification"] else 0,
+                                      key=f"ocr_class_{n_}_{decision['classification']}")
+        sec = st.selectbox("Security Level", db.SECURITY_LEVELS, key=f"ocr_sec_{n_}")
 
-            dept = st.selectbox("Assign to Department", db.DEPARTMENTS, key="ocr_dept")
-            classification = st.selectbox("Classification", db.CLASSIFICATIONS, key="ocr_class")
-            sec = st.selectbox("Security Level", db.SECURITY_LEVELS, key="ocr_sec")
-
-            if st.button("💾 Save as new document (bulk-scan ready)", type="primary"):
-                doc_id, code = db.create_document(
-                    title=auto_title or (source_name or "Scanned Document"),
-                    department=dept, classification=classification, security_level=sec,
-                    doc_type="Scanned Correspondence", source="Scan",
-                    language="Arabic" if lang_map[lang_choice] == "ara" else "English",
-                    body_text=edited_text, created_by=theme.current_user(),
-                    sender=meta.get("Sender", ""), recipient="",
-                )
-                db.log_audit(doc_id, theme.current_user(), "OCR Capture",
-                              f"Captured via Tesseract ({lang_map[lang_choice]}) from {source_name}")
-                import db_ext
-                for extra in file_to:
-                    if extra != dept:
-                        db.log_audit(doc_id, theme.current_user(), "Filed to Additional Location", extra)
-                        for n, p in db_ext.rfp_data.ROLES.items():
-                            if p["dept"] == extra:
-                                db_ext.notify(n, f"Scanned document {code} filed to your department.", doc_id, "info")
-                if file_to:
-                    st.info("Also filed to: " + ", ".join(file_to))
-                st.success(f"Saved as **{code}**. Fully searchable via OCR'd text — try the Search & Retrieval page.")
+        if st.button("💾 Save as new document (bulk-scan ready)", type="primary", key=f"save_{n_}"):
+            doc_id, code = db.create_document(
+                title=auto_title or (res["source"] or "Scanned Document"),
+                department=dept, classification=classification, security_level=sec,
+                doc_type=(decision["doc_type"] if auto and decision["doc_type"] else "Scanned Correspondence"), source="Scan",
+                language="Arabic" if res["lang"] == "ara" else "English",
+                body_text=edited_text, created_by=theme.current_user(),
+                sender=meta.get("Sender", ""), recipient="",
+            )
+            db.log_audit(doc_id, theme.current_user(), "OCR Capture", f"Captured via Tesseract ({res['lang']}) from {res['source']}")
+            if auto:
+                dist.distribute(doc_id, theme.current_user(), apply_dept=True, notify=True, text=edited_text)
+            for extra in res["file_to"]:
+                if extra != dept:
+                    db.log_audit(doc_id, theme.current_user(), "Filed to Additional Location", extra)
+                    for n, p in db_ext.rfp_data.ROLES.items():
+                        if p["dept"] == extra:
+                            db_ext.notify(n, f"Scanned document {code} filed to your department.", doc_id, "info")
+            if res["file_to"]:
+                st.info("Also filed to: " + ", ".join(res["file_to"]))
+            st.success(f"Saved as **{code}**" + (f" and auto-distributed to **{decision['primary']}**" if auto and decision["primary"] else "")
+                       + ". It is already in the search index — try the Search & Retrieval page.")
 
 st.markdown("---")
-st.markdown('<div class="efs-section-title">🗂️ Batch / Bulk Scanning</div>', unsafe_allow_html=True)
-st.markdown("""
-<div class="efs-card">
-The production pipeline supports bulk scanning: a watched folder or scanner feed is processed
-automatically — each page is OCR'd, auto-classified by content/naming convention, and queued
-for operator verification before entering the repository. This demo shows the single-document
-path above; the batch path uses the same engine in a loop with a review queue.
-</div>
-""", unsafe_allow_html=True)
+st.markdown('<div class="efs-section-title">⚡ Straight-through batch: scan → OCR → classify → distribute → index</div>', unsafe_allow_html=True)
+st.caption("Bulk scanning with no operator keystrokes: every sample page is read by OCR, classified from its content, filed, routed by the "
+           "distribution rules and added to the search index. Anything the rules cannot place lands in the triage queue.")
+if st.button("▶ Run batch on all sample scans"):
+    files = [f for f in (sorted(os.listdir(ASSETS_DIR)) if os.path.isdir(ASSETS_DIR) else []) if f.endswith(".png")]
+    if len(files) < 8:
+        generate_samples()
+        files = sorted(f for f in os.listdir(ASSETS_DIR) if f.endswith(".png"))
+    rows = []
+    bar = st.progress(0.0)
+    for i, f in enumerate(files):
+        im = Image.open(os.path.join(ASSETS_DIR, f)).convert("RGB")
+        txt = run_ocr(im, lang="eng").strip()
+        mt = extract_metadata(txt)
+        ttl = auto_name(mt, f)
+        dec = dist.analyse(txt, ttl, mt.get("Sender", ""))
+        did, code = db.create_document(ttl or f, dec["primary"] or "Medical Records", dec["classification"] or "External", "Internal",
+                                       dec["doc_type"] or "Letter", "Scan", "English", txt, theme.current_user(), sender=mt.get("Sender", ""))
+        db.log_audit(did, theme.current_user(), "OCR Capture", f"Batch capture from {f}")
+        dist.distribute(did, theme.current_user(), apply_dept=True, notify=True, text=txt)
+        rows.append({"Scan": f, "Document": code, "Words read": len(txt.split()), "Rule": dec["hits"][0]["rule"]["name"] if dec["hits"] else "— none —",
+                     "Routed to": dec["primary"] or "Triage queue", "Copies": ", ".join(dec["copies"]) or "—"})
+        bar.progress((i + 1) / len(files))
+    st.session_state["batch_rows"] = rows
+if st.session_state.get("batch_rows"):
+    import pandas as pd
+    st.dataframe(pd.DataFrame(st.session_state["batch_rows"]), use_container_width=True, hide_index=True)
+    st.success("Batch complete — all pages are searchable by their OCR text and delivered to their departments. "
+               "See ‘12 · Auto-Distribution’ for the log, and Search with ‘Scanned / OCR documents only’.")

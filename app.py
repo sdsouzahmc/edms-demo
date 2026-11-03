@@ -5,7 +5,7 @@ import db_ext
 st.set_page_config(page_title="EDMS Demo", page_icon="📁", layout="wide")
 import os, glob
 # one-time reset if a database from an older demo version is present
-_marker = os.path.join(db.DB_DIR, ".seed_rfp1")
+_marker = os.path.join(db.DB_DIR, ".seed_rfp2")
 if os.path.exists(db.DB_PATH) and not os.path.exists(_marker):
     for _f in glob.glob(db.DB_PATH + "*"):
         try:
@@ -16,7 +16,7 @@ os.makedirs(db.DB_DIR, exist_ok=True)
 db.init_db()
 db_ext.init_ext()
 db.ensure_seeded()
-open(_marker, 'w').write('rfp1')
+open(_marker, 'w').write('rfp2')
 
 pages = [
     st.Page("home_view.py", title="Home", icon="🏠", default=True),
@@ -31,6 +31,7 @@ pages = [
     st.Page("wg9_workspace.py", title="9 · My Workspace"),
     st.Page("wg10_admin.py", title="10 · Administration & Integrations"),
     st.Page("wg11_coverage.py", title="11 · RFP Coverage"),
+    st.Page("wg12_distribution.py", title="12 · Auto-Distribution"),
 ]
 
 pg = st.navigation(pages, position="hidden")

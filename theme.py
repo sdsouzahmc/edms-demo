@@ -190,12 +190,12 @@ def metric_card(label, value, col=None):
 PAGE_FILES = {
     "home": "home_view.py", "1": "wg1_correspondence.py", "2": "wg2_ocr.py", "3": "wg3_document_control.py",
     "4": "wg4_workflow.py", "5": "wg5_security.py", "6": "wg6_search.py", "7": "wg7_audit.py",
-    "8": "wg8_records.py", "9": "wg9_workspace.py", "10": "wg10_admin.py", "11": "wg11_coverage.py",
+    "8": "wg8_records.py", "9": "wg9_workspace.py", "10": "wg10_admin.py", "11": "wg11_coverage.py", "12": "wg12_distribution.py",
 }
 NAV = [("home", "🏠 Home / Lifecycle Story"), ("1", "1 · Correspondence & Intake"), ("2", "2 · OCR & Intelligent Capture"),
        ("3", "3 · Document Control & Versioning"), ("4", "4 · Workflow & Approvals"), ("5", "5 · Security & Compliance"),
        ("6", "6 · Search & Retrieval"), ("7", "7 · Audit, Governance & Reporting"), ("8", "8 · Records, Archiving & Disposal"),
-       ("9", "9 · My Workspace"), ("10", "10 · Administration & Integrations"), ("11", "11 · RFP Coverage")]
+       ("9", "9 · My Workspace"), ("10", "10 · Administration & Integrations"), ("11", "11 · RFP Coverage"), ("12", "12 · Auto-Distribution")]
 
 
 def _label(label):
@@ -210,6 +210,12 @@ def sidebar_nav():
     with st.sidebar:
         st.markdown("### 📁 EDMS Demo")
         st.caption(tr("Enterprise Document Management System"))
+        with st.form("quick_search", clear_on_submit=True):
+            qs = st.text_input("Quick search", placeholder="🔎 Search documents & scans", label_visibility="collapsed", key="qs_sidebar")
+            go = st.form_submit_button("Search", use_container_width=True)
+        if go and qs.strip():
+            st.session_state["global_q"] = qs.strip()
+            st.switch_page(PAGE_FILES["6"])
         st.divider()
         for k, label in NAV:
             st.page_link(PAGE_FILES[k], label=_label(label))

@@ -1,5 +1,6 @@
 import streamlit as st
 import db
+import distribution as dist
 import db_ext
 import rfp_data
 import theme
@@ -35,6 +36,7 @@ with tab1:
             copies = st.multiselect("Distribute copies to units", rfp_data.DEPARTMENTS)
         body = st.text_area("Content / Notes (captured text)", height=120,
                              placeholder="Paste or type the letter content — this becomes searchable full text.")
+        auto = st.checkbox("📬 Route automatically by content (overrides the department above when a distribution rule matches)", value=True)
         submitted = st.form_submit_button("Register Correspondence", type="primary")
 
     if submitted:
@@ -54,17 +56,24 @@ with tab1:
             db.log_correspondence(doc_id, direction, channel, sender, recipient, subject,
                                    theme.current_user())
             st.session_state["last_intake_doc"] = doc_id
+            routed = None
+            if auto:
+                routed = dist.distribute(doc_id, theme.current_user(), apply_dept=True, notify=True)
             for n, p in rfp_data.ROLES.items():
-                if p["dept"] in copies or p["dept"] == department:
-                    db_ext.notify(n, f"New {classification.lower()} {kind.lower()} registered: {code} — {subject}", doc_id, "info")
+                if not routed or not routed["hits"]:
+                  if p["dept"] in copies or p["dept"] == department:
+                      db_ext.notify(n, f"New {classification.lower()} {kind.lower()} registered: {code} — {subject}", doc_id, "info")
             if copies:
                 db.log_audit(doc_id, theme.current_user(), "Copies Distributed", "Copies sent to: " + ", ".join(copies))
             if direction == "Outgoing":
                 db_ext.create_dispatch(doc_id, classification, kind, recipient, ", ".join(copies), theme.current_user())
-            st.success(f"✅ Registered as **{code}** — routed to {department} for review.")
+            if routed and routed["hits"]:
+                st.success(f"✅ Registered as **{code}** — auto-routed to **{routed['primary']}**"
+                           + (f", copies to {', '.join(routed['copies'])}" if routed["copies"] else "") + f" (rule: {routed['hits'][0]['rule']['name']}).")
+            else:
+                st.success(f"✅ Registered as **{code}** — routed to {department} for review." + (" No distribution rule matched, so it is in the triage queue." if auto else ""))
             if meta:
                 st.caption("Auto-extracted metadata: " + ", ".join(f"**{k}**: {v}" for k, v in meta.items()))
-            st.rerun()
 
     if "last_intake_doc" in st.session_state:
         doc = db.get_document(st.session_state["last_intake_doc"])

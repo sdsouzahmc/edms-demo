@@ -57,6 +57,8 @@ def init_ext():
     """)
     conn.commit()
     conn.close()
+    import distribution
+    distribution.init_dist()
 
 
 # ------------------------------------------------------------- numbering ---

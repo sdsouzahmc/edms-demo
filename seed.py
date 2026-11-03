@@ -162,6 +162,9 @@ SEED_DOCS = [
 ]
 
 
+SEED_DOCS_EXTRA = []
+
+
 def run():
     db.init_db()
     db_ext.init_ext()
@@ -270,9 +273,36 @@ def run():
         ("BX-0004", "Finance vouchers FY2016-FY2018", "Finance", "Offsite Storage Provider", "Warehouse 2 / Bay 3", "Third-party custodian", "2028-12-31")]:
         db_ext.add_physical(box, desc, dept, site, loc, cust, until)
 
+    # --- automatic distribution: apply the content rules to every seeded document and build the log ---
+    import distribution
+    distribution.init_dist()
+    for ttl, body in [("Courier delivery slip - unidentified parcel", "Parcel received at the main gate. Sender name illegible. Please advise."),
+                      ("Thank-you card from visiting delegation", "Our delegation thanks the hospital for the warm welcome during last week's visit.")]:
+        i_, _c = db.create_document(ttl, "Medical Records", "External", "Internal", "Letter", "Postal", "English", body, "Sara Al-Ansari",
+                                    sender="Unknown", recipient="Hospital")
+        ids[ttl] = i_
+        SEED_DOCS_EXTRA.append(ttl)
+    for sd in SEED_DOCS:
+        if sd[5] in ("Scan", "Postal", "Email"):          # incoming / captured items are auto-distributed
+            distribution.distribute(ids[sd[0]], "System", apply_dept=False, notify=False)
+    for ttl in SEED_DOCS_EXTRA:
+        distribution.distribute(ids[ttl], "System", apply_dept=False, notify=False)
+    conn = db.get_conn()
+    prim = conn.execute("SELECT l.id, l.target_dept, d.status FROM dist_log l JOIN documents d ON d.id=l.document_id "
+                        "WHERE l.role='Primary' ORDER BY l.id").fetchall()
+    for i, r in enumerate(prim):
+        if r["status"] in ("Released", "Archived") or i % 3 == 0:
+            who = next((n for n, p in db_ext.rfp_data.ROLES.items() if p["dept"] == r["target_dept"]), "Yusuf Al-Marri")
+            conn.execute("UPDATE dist_log SET status='Acknowledged', ack_by=?, ack_at=datetime('now','-1 day') WHERE id=?", (who, r["id"]))
+    late = [r["id"] for r in conn.execute("SELECT id FROM dist_log WHERE status='Delivered' ORDER BY id DESC LIMIT 4")]
+    for i in late:
+        conn.execute("UPDATE dist_log SET sla_due=datetime('now','-6 hour') WHERE id=?", (i,))
+    conn.commit()
+    conn.close()
+
     db_ext.sync_ad()
     db_ext.make_backup("Initial baseline (post-seed)", "System", "Scheduled")
-    print(f"Seeded {len(SEED_DOCS)} documents aligned to the RFP scope.")
+    print(f"Seeded {len(SEED_DOCS) + len(SEED_DOCS_EXTRA)} documents aligned to the RFP scope.")
 
 
 if __name__ == "__main__":

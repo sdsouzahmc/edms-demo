@@ -101,6 +101,40 @@ def generate_samples():
             "Procurement Department",
         ]
     ))
+    samples.append(make_letter_image(
+        os.path.join(ASSETS_DIR, "sample_supplier_invoice.png"),
+        "TAX INVOICE", "INV-2026-7710", "25/09/2026", "Gulf Medical Supplies W.L.L.",
+        "Invoice for Q3 laboratory consumables",
+        ["Bill to: Finance Department", "", "Laboratory consumables delivered 14/09/2026 under purchase order",
+         "PO-2026-0391. Payment is due within 30 days of invoice date.", "",
+         "Total amount: QAR 36,450", "", "Please remit payment to the bank account on file.", "", "Accounts Receivable"]))
+    samples.append(make_letter_image(
+        os.path.join(ASSETS_DIR, "sample_legal_contract.png"),
+        "SERVICE AGREEMENT - DRAFT", "LEG-2026-0212", "18/09/2026", "Al Noor Facility Services",
+        "Renewal of cleaning services contract",
+        ["This agreement is entered into between the Hospital and the Contractor.", "",
+         "The contract term is 24 months. Liability, indemnity and termination", "clauses are subject to review by legal counsel before signature.", "",
+         "Contract value: QAR 215,000", "", "Governing law: State of Qatar.", "", "Legal & Contracts"]))
+    samples.append(make_letter_image(
+        os.path.join(ASSETS_DIR, "sample_it_incident.png"),
+        "IT SERVICE DESK - INCIDENT REPORT", "IT-2026-0933", "27/09/2026", "IT Service Desk",
+        "Network outage - server room switch failure",
+        ["Incident: core network switch in the server room failed at 02:14.", "",
+         "Impact: EMR access degraded for 40 minutes. Backup firewall and", "server failover operated as designed.", "",
+         "Action: replace switch, review system configuration and patch level.", "", "IT Infrastructure Team"]))
+    samples.append(make_letter_image(
+        os.path.join(ASSETS_DIR, "sample_security_report.png"),
+        "SECURITY - FIRE SAFETY INSPECTION", "SEC-2026-0075", "29/09/2026", "Security & Safety Office",
+        "Fire safety drill and CCTV coverage review",
+        ["The quarterly fire drill was completed in Block B. Evacuation time", "was 4 minutes 10 seconds.", "",
+         "CCTV coverage gaps were identified at the east service entrance.", "Access card readers require firmware update.", "",
+         "Recommended action: install two additional cameras.", "", "Security Office"]))
+    samples.append(make_letter_image(
+        os.path.join(ASSETS_DIR, "sample_clinical_referral.png"),
+        "MEDICAL RECORDS - PATIENT REFERRAL", "MR-2026-5530", "30/09/2026", "Outpatient Clinic",
+        "Patient referral and discharge summary request",
+        ["Patient: Aisha M.   QID 2890*****14", "", "Admission 12/09/2026, discharge 19/09/2026. Please file the discharge", "summary in the patient medical record and send the clinical",
+         "notes to the referring physician.", "", "Diagnosis and treatment plan attached.", "", "Medical Records Office"]))
     return samples
 
 
