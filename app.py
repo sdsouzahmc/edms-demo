@@ -33,6 +33,8 @@ pages = [
     st.Page("wg11_coverage.py", title="11 · RFP Coverage"),
     st.Page("wg12_distribution.py", title="12 · Auto-Distribution"),
     st.Page("wg13_analytics.py", title="13 · Analytics & Insights"),
+    st.Page("wg14_users.py", title="14 · User Management"),
+    st.Page("wg15_roles.py", title="15 · Role Management"),
 ]
 
 pg = st.navigation(pages, position="hidden")

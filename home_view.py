@@ -7,6 +7,7 @@ db.init_db()
 theme.inject_css()
 theme.sidebar_nav()
 import icons
+theme.userbar()
 st.markdown(f"""
 <div class="efs-hero">
   <div>

@@ -30,6 +30,7 @@ P = {
     "trash": '<path d="M4 7h16M10 7V4h4v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
     "link": '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
     "database": '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
+    "key": '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>',
     "home": '<path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',
     "tag": '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>',
 }
@@ -45,7 +46,7 @@ ACTIONS = [
 ]
 
 PAGE_ICON = {"home": "home", "1": "inbox", "2": "scan", "3": "version", "4": "workflow", "5": "shield", "6": "search", "7": "audit",
-             "8": "archive", "9": "briefcase", "10": "settings", "11": "list", "12": "route", "13": "chart"}
+             "8": "archive", "9": "briefcase", "10": "settings", "11": "list", "12": "route", "13": "chart", "14": "users", "15": "key"}
 
 
 def svg(name, size=20, color="currentColor", stroke=1.8):

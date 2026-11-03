@@ -197,15 +197,25 @@ def topbar(title: str, subtitle: str = ""):
     prof = current_profile()
     key = title.split(" ")[0].strip("·") if title[:1].isdigit() else "home"
     ic = icons.svg(icons.PAGE_ICON.get(key, "document"), 26, "#FFFFFF", 1.6)
+    check_access(key)
     st.markdown(f"""
     <div class="efs-topbar">
         <div style="display:flex;gap:14px;align-items:center">
             <span class="efs-topicon">{ic}</span>
             <div><h1>{tr(title)}</h1><div class="sub">{tr(subtitle)}</div></div>
         </div>
-        <div class="efs-badge">{icons.avatar(current_user(), 24, "#2E8B8B")}&nbsp; {current_user()} &nbsp;·&nbsp; {prof['role']} &nbsp;·&nbsp; {prof['dept']}</div>
+        <div class="efs-badge" style="display:flex;align-items:center;gap:10px;padding:6px 14px 6px 8px">{icons.avatar(current_user(), 34, "#2E8B8B")}<div style="line-height:1.2"><div style="font-weight:700;font-size:.9rem">{current_user()}</div><div style="opacity:.85">{prof['role']} · {prof['dept']}</div></div></div>
     </div>
     """, unsafe_allow_html=True)
+
+
+def userbar():
+    import icons
+    prof = current_profile()
+    st.markdown(f"""<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><div style="display:flex;align-items:center;gap:10px;background:#fff;
+    border:1px solid {BORDER};border-radius:30px;padding:5px 16px 5px 6px;box-shadow:0 1px 3px rgba(31,56,100,.08)">{icons.avatar(current_user(), 34, "#2E8B8B")}
+    <div style="line-height:1.2"><div style="font-weight:700;color:{NAVY};font-size:.9rem">Welcome, {current_user()}</div>
+    <div style="font-size:.74rem;color:{GREY}">{prof['role']} · {prof['dept']}</div></div></div></div>""", unsafe_allow_html=True)
 
 
 def metric_card(label, value, col=None):
@@ -219,13 +229,14 @@ PAGE_FILES = {
     "home": "home_view.py", "1": "wg1_correspondence.py", "2": "wg2_ocr.py", "3": "wg3_document_control.py",
     "4": "wg4_workflow.py", "5": "wg5_security.py", "6": "wg6_search.py", "7": "wg7_audit.py",
     "8": "wg8_records.py", "9": "wg9_workspace.py", "10": "wg10_admin.py", "11": "wg11_coverage.py", "12": "wg12_distribution.py",
-    "13": "wg13_analytics.py",
+    "13": "wg13_analytics.py", "14": "wg14_users.py", "15": "wg15_roles.py",
 }
-NAV = [("home", "🏠 Home / Lifecycle Story"), ("1", "1 · Correspondence & Intake"), ("2", "2 · OCR & Intelligent Capture"),
+NAV = [("home", "Home / Lifecycle Story"), ("1", "1 · Correspondence & Intake"), ("2", "2 · OCR & Intelligent Capture"),
        ("3", "3 · Document Control & Versioning"), ("4", "4 · Workflow & Approvals"), ("5", "5 · Security & Compliance"),
        ("6", "6 · Search & Retrieval"), ("7", "7 · Audit, Governance & Reporting"), ("8", "8 · Records, Archiving & Disposal"),
        ("9", "9 · My Workspace"), ("10", "10 · Administration & Integrations"), ("11", "11 · RFP Coverage"), ("12", "12 · Auto-Distribution"),
-       ("13", "13 · Analytics & Insights")]
+       ("13", "13 · Analytics & Insights"),
+       ("14", "14 · User Management"), ("15", "15 · Role Management")]
 
 
 def _label(label):
@@ -234,22 +245,124 @@ def _label(label):
     return (emoji + " " if emoji else "") + tr(core)
 
 
+def _login_screen():
+    import accounts
+    import icons
+    st.markdown("""<style>
+    [data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"], [data-testid="collapsedControl"], header[data-testid="stHeader"] { display:none !important; }
+    .block-container { max-width: 1100px; padding-top: 2rem !important; }
+    .efs-lhero { background: linear-gradient(120deg, #152845 0%, #1F3864 55%, #1F6F78 100%); color:#fff; border-radius:18px; padding:28px 28px 22px 28px;
+        box-shadow:0 10px 28px rgba(21,40,69,.25); min-height: 420px; }
+    .efs-lhero h1 { color:#fff; font-size:1.8rem; line-height:1.2; margin:14px 0 8px 0; }
+    .efs-lhero li { margin: 6px 0; font-size:.9rem; opacity:.95; }
+    .efs-rolecard { display:flex; gap:10px; align-items:center; background:#fff; border:1px solid #E2E6EC; border-left:5px solid var(--c); border-radius:12px;
+        padding:9px 12px; margin-bottom:4px; }
+    </style>""", unsafe_allow_html=True)
+    left, right = st.columns([1, 1.15], gap="large")
+    with left:
+        st.markdown(f"""<div class="efs-lhero">
+        <div style="display:flex;align-items:center;gap:10px">{icons.chip("database", "#7FD1C7", 44)}<div style="font-weight:800;font-size:1.25rem;line-height:1.1">EDMS<br><span style="font-weight:500;font-size:.78rem;opacity:.8">Enterprise Document Management</span></div></div>
+        <h1>Sign in to the document workspace</h1>
+        <div style="height:150px">{icons.hero_art()}</div>
+        <ul style="padding-left:18px;margin-top:10px"><li>Role-based menus — each role sees only what it needs</li>
+        <li>Every sign-in and change is written to the immutable audit trail</li><li>Account lock-out after repeated failures</li></ul></div>""", unsafe_allow_html=True)
+    with right:
+        t1, t2 = st.tabs(["🔑 Sign in", "🎭 Demo access by role"])
+        with t1:
+            with st.form("login_form"):
+                uname = st.text_input("User name", placeholder="e.g. Sara Al-Ansari")
+                pw = st.text_input("Password", type="password")
+                go = st.form_submit_button("Sign in", type="primary", use_container_width=True)
+            if go:
+                ok, msg = accounts.authenticate(uname, pw)
+                if ok:
+                    accounts.record_login(msg)
+                    st.session_state["auth_user"] = msg
+                    st.session_state[CURRENT_USER_KEY] = msg
+                    st.rerun()
+                else:
+                    st.error(msg)
+            st.caption(f"Demo accounts share the password **{accounts.DEMO_PASSWORD}**. Five wrong attempts lock an account (an administrator unlocks it).")
+        with t2:
+            st.caption("One click sign-in for demonstration — pick a person to see the system through that role.")
+            us = [u for u in accounts.users() if u["active"]]
+            rmap = {r["name"]: r for r in accounts.roles()}
+            cols = st.columns(2)
+            for i, u in enumerate(us):
+                r = rmap.get(u["role"], {"color": "#6B7280", "modules": []})
+                with cols[i % 2]:
+                    st.markdown(f"""<div class="efs-rolecard" style="--c:{r['color']}">{icons.avatar(u['username'], 36, r['color'])}
+                    <div style="line-height:1.2"><b style="color:#1F3864">{u['username']}</b><br><span style="font-size:.76rem;color:#6B7280">{u['role']} · {u['dept']}</span></div></div>""",
+                                unsafe_allow_html=True)
+                    if st.button(f"Enter as {u['role']}", key=f"qa_{u['username']}", use_container_width=True):
+                        st.session_state["auth_user"] = u["username"]
+                        st.session_state[CURRENT_USER_KEY] = u["username"]
+                        accounts.record_login(u["username"], "Demo quick access")
+                        st.rerun()
+    st.stop()
+
+
+def logout():
+    import accounts
+    accounts.record_logout(current_user())
+    for k in ("auth_user", CURRENT_USER_KEY):
+        st.session_state.pop(k, None)
+    st.rerun()
+
+
+def check_access(key):
+    """Block a page when the signed-in user's role does not include the module."""
+    import accounts
+    import icons
+    if key == "home" or key in accounts.allowed_modules(current_user()):
+        return
+    label = accounts.MODULES.get(key, (key,))[0]
+    st.markdown(f"""<div class="efs-card" style="text-align:center;padding:36px">{icons.chip('lock', '#B00020', 56)}
+    <h3 style="color:{NAVY};margin:12px 0 4px 0">Access restricted</h3>
+    <div style="color:{GREY}">Your role <b>{current_profile()['role']}</b> does not include <b>{label}</b>.<br>
+    Ask an administrator to adjust the role in <i>Role Management</i>, or sign in with a different account.</div></div>""", unsafe_allow_html=True)
+    db_log = __import__("db")
+    db_log.log_audit(None, current_user(), "Access Denied", f"Tried to open module: {label}", "Denied")
+    st.stop()
+
+
 def sidebar_nav():
-    names = list(ROLES.keys())
-    current = current_user()
+    import accounts
+    import icons as _ic
+    accounts.init_accounts()
+    if not st.session_state.get("auth_user") or st.session_state["auth_user"] not in ROLES:
+        st.session_state.pop("auth_user", None)
+        _login_screen()
+    current = st.session_state["auth_user"]
+    st.session_state[CURRENT_USER_KEY] = current
+    prof = ROLES[current]
+    rinfo = accounts.role(prof["role"]) or {"color": "#2E8B8B", "modules": []}
+    allowed = accounts.allowed_modules(current) | {"home"}
+    menu_css = "".join(
+        f'.st-key-nav_{k} a {{ border-left: 5px solid {accounts.MODULES[k][2]}; background: {accounts.MODULES[k][2]}12; border-radius: 10px; margin: 2px 0; padding-left: 10px; }}'
+        f'.st-key-nav_{k} a:hover {{ background: {accounts.MODULES[k][2]}26; }}' for k in accounts.MODULES)
+    st.markdown(f"<style>{menu_css}"
+                ".st-key-navmenu a p { font-weight:600; font-size:.8rem; white-space:normal; line-height:1.15; }"
+                '[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"][aria-current="page"] { box-shadow: 0 0 0 2px #1F386433; }'
+                "</style>", unsafe_allow_html=True)
     with st.sidebar:
-        import icons as _ic
-        st.markdown(f'<div style="display:flex;align-items:center;gap:10px;margin:4px 0 2px 0">{_ic.chip("database", "#2E8B8B", 38)}<div style="font-weight:800;color:{NAVY};font-size:1.15rem;line-height:1.1">EDMS<br><span style="font-weight:500;font-size:.72rem;color:{GREY}">Working Demo</span></div></div>', unsafe_allow_html=True)
-        st.caption(tr("Enterprise Document Management System"))
+        st.markdown(f'<div style="display:flex;align-items:center;gap:10px;margin:4px 0 8px 0">{_ic.chip("database", "#2E8B8B", 38)}<div style="font-weight:800;color:{NAVY};font-size:1.15rem;line-height:1.1">EDMS<br><span style="font-weight:500;font-size:.72rem;color:{GREY}">Working Demo</span></div></div>', unsafe_allow_html=True)
+        st.markdown(f"""<div style="background:linear-gradient(120deg,{NAVY} 0%,#1F6F78 100%);border-radius:14px;padding:12px 14px;color:#fff;display:flex;gap:10px;align-items:center;box-shadow:0 4px 12px rgba(21,40,69,.2)">
+        {_ic.avatar(current, 42, rinfo['color'])}<div style="line-height:1.25"><div style="font-weight:700">{current}</div>
+        <div style="font-size:.74rem;opacity:.9">{prof['role']}</div><div style="font-size:.7rem;opacity:.75">{prof['dept']}</div></div></div>""", unsafe_allow_html=True)
+        if st.button("⎋ Sign out", key="logout_btn", use_container_width=True):
+            logout()
         with st.form("quick_search", clear_on_submit=True):
             qs = st.text_input("Quick search", placeholder="🔎 Search documents & scans", label_visibility="collapsed", key="qs_sidebar")
             go = st.form_submit_button("Search", use_container_width=True)
         if go and qs.strip():
             st.session_state["global_q"] = qs.strip()
             st.switch_page(PAGE_FILES["6"])
-        st.divider()
-        for k, label in NAV:
-            st.page_link(PAGE_FILES[k], label=_label(label))
+        with st.container(key="navmenu"):
+            for k, label in NAV:
+                if k in allowed:
+                    with st.container(key=f"nav_{k}"):
+                        st.page_link(PAGE_FILES[k], label=_label(label), icon=accounts.MODULES[k][1])
         st.divider()
         st.caption(tr("Language"))
         pick = st.radio("Language", ["English", "العربية"], index=0 if lang() == "en" else 1,
@@ -258,26 +371,19 @@ def sidebar_nav():
         if new_lang != lang():
             st.session_state["lang"] = new_lang
             st.rerun()
-        st.caption(tr("Viewing as"))
-        choice = st.selectbox("Switch user / role", names, index=names.index(current), label_visibility="collapsed")
-        if choice != current:
-            st.session_state[CURRENT_USER_KEY] = choice
-            st.rerun()
-        prof = ROLES[choice]
-        st.caption(f"{prof['role']} · {prof['dept']}")
         try:
             import db_ext
-            unread = len(db_ext.get_notifications(choice, only_unread=True))
+            unread = len(db_ext.get_notifications(current, only_unread=True))
             if unread:
                 st.page_link(PAGE_FILES["9"], label=f"🔔 {unread} new notification(s)")
         except Exception:
             pass
     # mobile-only quick menu (sidebar is collapsed on phones)
     with st.container(key="mobilenav"):
-        with st.expander("☰ Menu · pages & switch user"):
+        with st.expander("☰ Menu · pages & account"):
             for k, label in NAV:
-                st.page_link(PAGE_FILES[k], label=_label(label))
-            m_choice = st.selectbox("Viewing as", names, index=names.index(choice), key="m_user")
-            if m_choice != choice:
-                st.session_state[CURRENT_USER_KEY] = m_choice
-                st.rerun()
+                if k in allowed:
+                    st.page_link(PAGE_FILES[k], label=_label(label), icon=accounts.MODULES[k][1])
+            st.caption(f"{current} · {prof['role']}")
+            if st.button("⎋ Sign out", key="logout_m"):
+                logout()
