@@ -1,5 +1,7 @@
 """Shared design tokens, CSS injection, and small UI helpers for the EDMS demo."""
 import streamlit as st
+import i18n
+i18n.install()
 
 NAVY = "#1F3864"
 NAVY_DARK = "#152845"
@@ -47,7 +49,7 @@ def lang() -> str:
 def tr(text: str) -> str:
     """Translate UI strings to Arabic when the Arabic interface is selected (RFP 2.3.9 / 3.09)."""
     if lang() == "ar":
-        return AR.get(text, text)
+        return AR.get(text) or i18n.translate(text)
     return text
 
 
@@ -249,13 +251,15 @@ def _label(label):
     return (emoji + " " if emoji else "") + tr(core)
 
 
+def _on_lang(key):
+    st.session_state["lang"] = "en" if st.session_state.get(key) == "English" else "ar"
+
+
 def _lang_switch(key="lang_radio"):
-    pick = st.radio("Language", ["English", "العربية"], index=0 if lang() == "en" else 1,
-                    horizontal=True, label_visibility="collapsed", key=key)
-    new_lang = "en" if pick == "English" else "ar"
-    if new_lang != lang():
-        st.session_state["lang"] = new_lang
-        st.rerun()
+    # one widget state per radio, always mirrored from the single source of truth ('lang') -> no double render / flicker
+    st.session_state[key] = "English" if lang() == "en" else "العربية"
+    st.radio("Language", ["English", "العربية"], horizontal=True, label_visibility="collapsed", key=key,
+             on_change=_on_lang, args=(key,))
 
 
 def _login_screen():
