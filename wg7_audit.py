@@ -22,38 +22,105 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["📜 Document Audit Trail", "📊 Compl
                                          "🧭 Audit Readiness", "📑 My Report Templates"])
 
 with tab1:
+    import html as _h
+    import icons
+    import audit_ext
     docs = db.get_documents(include_disposed=True)
     doc_map = {f"{d['doc_code']} — {d['title']}": d["id"] for d in docs}
     choice = st.selectbox("Select a document to inspect", list(doc_map.keys()))
     doc_id = doc_map[choice]
     doc = db.get_document(doc_id)
-
+    log = [dict(r) for r in db.get_audit_log(doc_id)]
+    hashes = audit_ext.chain(log)
     st.markdown(f"""
-    <div class="efs-card">
-    <b>{doc['title']}</b> ({doc['doc_code']}) &nbsp; {theme.pill(doc['status'])}<br>
-    Created by <b>{doc['created_by']}</b> on {doc['created_at']} &nbsp;·&nbsp;
-    Last modified by <b>{doc['modified_by']}</b> on {doc['modified_at']}
-    </div>
-    """, unsafe_allow_html=True)
+    <div class="efs-card" style="display:flex;gap:14px;align-items:center">
+    {icons.chip('document', '#1F3864', 46)}
+    <div><b style="font-size:1.05rem">{_h.escape(doc['title'])}</b> <span style="color:#6B7280">({doc['doc_code']})</span> &nbsp; {theme.pill(doc['status'])}<br>
+    <span style="font-size:.82rem;color:#6B7280">Created by <b>{doc['created_by']}</b> on {doc['created_at']} &nbsp;·&nbsp;
+    last modified by <b>{doc['modified_by']}</b> on {doc['modified_at']}</span></div>
+    </div>""", unsafe_allow_html=True)
 
-    log = db.get_audit_log(doc_id)
-    st.markdown(f"**{len(log)}** audit events — immutable, timestamped, cannot be altered or deleted")
-    action_icons = {
-        "Created": "🆕", "Edited": "✏️", "Checked Out": "🔒", "New Version Checked In": "📥",
-        "Version Published": "📣", "Approved": "✅", "Rejected": "❌", "Delegated": "↪️",
-        "Viewed": "👁", "Downloaded": "⬇️", "Archived": "🗄️", "Disposal Requested": "🗑️",
-        "OCR Capture": "🔎",
-    }
-    for entry in log:
-        icon = next((v for k, v in action_icons.items() if k in entry["action"]), "📌")
-        st.markdown(f"""
-        <div style="padding:8px 0;border-bottom:1px solid #E2E6EC;">
-        {icon} <b>{entry['action']}</b> — {entry['detail'] or ''}<br>
-        <span style="font-size:0.8rem;color:#6B7280">by {entry['actor']} · {entry['ts']} · {entry['result']}</span>
-        </div>
-        """, unsafe_allow_html=True)
-    if not log:
-        st.info("No audit events recorded for this document yet.")
+    f1, f2, f3, f4 = st.columns([1.3, 1.3, 1.2, 1])
+    with f1:
+        who = st.multiselect("Who", sorted({e["actor"] for e in log}), placeholder="Everyone")
+    with f2:
+        what = st.multiselect("What", sorted({e["action"] for e in log}), placeholder="All actions")
+    with f3:
+        only_changes = st.checkbox("Only value changes", value=False)
+    with f4:
+        newest_first = st.checkbox("Newest first", value=True)
+    view = [e for e in log if (not who or e["actor"] in who) and (not what or e["action"] in what)
+            and (not only_changes or e["field"])]
+    view.sort(key=lambda e: (e["ts"], e["id"]), reverse=newest_first)
+
+    changes = [e for e in log if e["field"]]
+    c1, c2, c3, c4 = st.columns(4)
+    theme.metric_card("Audit events", len(log), c1)
+    theme.metric_card("People involved", len({e["actor"] for e in log}), c2)
+    theme.metric_card("Value changes", len(changes), c3)
+    theme.metric_card("Last activity", (log[0]["ts"][:10] if log else "—"), c4)
+    st.write("")
+    t_time, t_chg, t_who = st.tabs(["🕑 Timeline", "🔁 Changes — old → new", "👥 Who did what"])
+
+    def role_of(n):
+        return rfp_data.ROLES.get(n, {}).get("role", "System")
+
+    with t_time:
+        if not view:
+            st.info("No events match the filters.")
+        for e in view:
+            ic, col = icons.for_action(e["action"])
+            val = ""
+            if e["field"] and e["field"] not in ("body_text",):
+                val = (f'<div style="margin-top:6px"><span class="efs-hash" style="background:#F3F4F6">{_h.escape(e["field"])}</span> '
+                       f'<span class="efs-old">{_h.escape(str(e["old_value"] if e["old_value"] is not None else "—"))}</span> '
+                       f'→ <span class="efs-new">{_h.escape(str(e["new_value"] if e["new_value"] is not None else "—"))}</span></div>')
+            elif e["field"] == "body_text":
+                val = '<div style="margin-top:6px"><span class="efs-hash" style="background:#F3F4F6">body_text</span> text changed — see the diff below</div>'
+            res = "" if e["result"] == "Success" else f' <span class="efs-pill pill-rejected">{_h.escape(e["result"])}</span>'
+            st.markdown(f"""<div class="efs-tl" style="--c:{col}">
+            {icons.chip(ic, col, 40)}
+            <div style="flex:1;min-width:0">
+              <div class="t">{_h.escape(e['action'])}{res}</div>
+              <div style="font-size:.86rem;color:#374151">{_h.escape(e['detail'] or '')}</div>{val}
+              <div class="m">
+                <span style="display:inline-flex;align-items:center;gap:6px">{icons.avatar(e['actor'], 22)}<b>{_h.escape(e['actor'] or '')}</b> · {_h.escape(role_of(e['actor']))}</span>
+                <span>🕑 {e['ts']}</span><span>🌐 {e['ip'] or '—'} · {e['channel'] or '—'}</span>
+                <span title="Hash chained to the previous event — any edit breaks the chain">🔗 <span class="efs-hash">{hashes.get(e['id'], '')}</span></span>
+              </div>
+            </div></div>""", unsafe_allow_html=True)
+            if e["field"] == "body_text" and e["old_value"] != e["new_value"]:
+                with st.expander("View text difference"):
+                    st.markdown(audit_ext.word_diff(e["old_value"], e["new_value"]), unsafe_allow_html=True)
+
+    with t_chg:
+        if changes:
+            df = pd.DataFrame([{"When": e["ts"], "Who": e["actor"], "Role": role_of(e["actor"]), "What": e["action"], "Field": e["field"],
+                                "Old value": (e["old_value"] or "")[:80], "New value": (e["new_value"] or "")[:80]} for e in sorted(changes, key=lambda x: x["ts"], reverse=True)])
+            st.dataframe(df, use_container_width=True, hide_index=True)
+        else:
+            st.info("No field-level changes recorded for this document.")
+
+    with t_who:
+        if log:
+            import plotly.express as px
+            df = pd.DataFrame(log)
+            m = df.groupby(["actor", "action"]).size().reset_index(name="n")
+            fig = px.bar(m, x="n", y="actor", color="action", orientation="h", color_discrete_sequence=px.colors.qualitative.Safe)
+            fig.update_layout(height=max(260, 46 * df["actor"].nunique() + 90), margin=dict(l=4, r=4, t=10, b=4), legend=dict(orientation="h", y=-0.2, title=None),
+                              template="plotly_white", yaxis_title=None, xaxis_title="Events")
+            st.plotly_chart(fig, use_container_width=True)
+
+    out = pd.DataFrame([{"Event ID": e["id"], "When": e["ts"], "Who": e["actor"], "What": e["action"], "Detail": e["detail"], "Field": e["field"],
+                         "Old value": e["old_value"], "New value": e["new_value"], "IP": e["ip"], "Channel": e["channel"], "Result": e["result"],
+                         "Chain hash": hashes.get(e["id"])} for e in log])
+    d1, d2 = st.columns([1, 3])
+    with d1:
+        st.download_button("⬇ Export audit trail (CSV)", out.to_csv(index=False).encode("utf-8-sig"), f"audit_{doc['doc_code']}.csv")
+    with d2:
+        st.markdown(
+            f'<div style="font-size:.78rem;color:#6B7280;display:flex;gap:6px;align-items:center">{icons.svg("shield", 16, "#2E7D32")} Append-only log — the database rejects updates and deletes. Every event carries a chained hash, so a missing or altered row is detectable.</div>',
+            unsafe_allow_html=True)
 
 with tab2:
     s = db.stats()

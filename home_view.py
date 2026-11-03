@@ -6,8 +6,17 @@ import plotly.graph_objects as go
 db.init_db()
 theme.inject_css()
 theme.sidebar_nav()
-theme.topbar("Enterprise Document Management System — Working Demo",
-             "Single-lifecycle narrative: Incoming Regulatory Letter → Release → Archive → Disposal")
+import icons
+st.markdown(f"""
+<div class="efs-hero">
+  <div>
+    <h2>Every document. Captured, routed, controlled, proven.</h2>
+    <p>One repository for scanning &amp; OCR, automatic distribution, versioning, workflow, search, audit and records — with analytics on all of it.</p>
+    <div class="chips"><span>🖨️ OCR (EN/AR)</span><span>📬 Auto-distribution</span><span>🔎 Full-text search</span><span>🧾 Immutable audit trail</span><span>📊 Analytics</span><span>🔐 Role-based security</span></div>
+  </div>
+  <div style="height:190px">{icons.hero_art()}</div>
+</div>
+""", unsafe_allow_html=True)
 
 s = db.stats()
 c1, c2, c3, c4, c5, c6 = st.columns(6)

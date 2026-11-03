@@ -73,10 +73,34 @@ def inject_css():
     .stApp {{ background: {BG}; }}
 
     .efs-topbar {{
-        background: linear-gradient(90deg, {NAVY} 0%, {NAVY_DARK} 100%);
-        color: white; padding: 14px 22px; border-radius: 10px; margin-bottom: 18px;
-        display: flex; justify-content: space-between; align-items: center;
+        background:
+          radial-gradient(circle at 92% 20%, rgba(127,209,199,.28) 0, rgba(127,209,199,0) 38%),
+          radial-gradient(circle at 8% 120%, rgba(255,255,255,.10) 0, rgba(255,255,255,0) 40%),
+          linear-gradient(100deg, {NAVY_DARK} 0%, {NAVY} 52%, #1F6F78 100%);
+        color: white; padding: 16px 22px; border-radius: 14px; margin-bottom: 18px;
+        display: flex; justify-content: space-between; align-items: center; gap: 12px;
+        box-shadow: 0 6px 18px rgba(21,40,69,.18);
     }}
+    .efs-topicon {{ display:inline-flex; align-items:center; justify-content:center; width:46px; height:46px; border-radius:13px;
+        background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25); flex:none; }}
+    .efs-hero {{ display:grid; grid-template-columns: 1.25fr 1fr; gap: 10px; align-items:center;
+        background: linear-gradient(110deg, {NAVY_DARK} 0%, {NAVY} 55%, #1F6F78 100%); color:#fff; border-radius:16px;
+        padding: 22px 26px; margin-bottom: 18px; box-shadow: 0 8px 22px rgba(21,40,69,.22); overflow:hidden; }}
+    .efs-hero h2 {{ color:#fff; margin:0 0 6px 0; font-size:1.55rem; line-height:1.2; }}
+    .efs-hero p {{ margin:0 0 12px 0; opacity:.9; font-size:.92rem; }}
+    .efs-hero .chips span {{ display:inline-block; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.25);
+        border-radius:20px; padding:3px 11px; font-size:.74rem; margin:0 6px 6px 0; }}
+    .efs-del {{ background:#FBE3E7; color:{RED}; text-decoration:line-through; padding:0 3px; border-radius:3px; }}
+    .efs-ins {{ background:#E1F3E4; color:{GREEN}; padding:0 3px; border-radius:3px; font-weight:600; }}
+    .efs-old {{ background:#FBE3E7; color:{RED}; text-decoration:line-through; padding:2px 8px; border-radius:6px; font-size:.8rem; }}
+    .efs-new {{ background:#E1F3E4; color:{GREEN}; padding:2px 8px; border-radius:6px; font-size:.8rem; font-weight:600; }}
+    .efs-tl {{ display:flex; gap:12px; padding: 12px 14px; background:{CARD}; border:1px solid {BORDER}; border-left:4px solid var(--c,{TEAL});
+        border-radius:12px; margin-bottom:10px; box-shadow:0 1px 3px rgba(31,56,100,.05); transition: box-shadow .15s, transform .15s; }}
+    .efs-tl:hover {{ box-shadow:0 6px 16px rgba(31,56,100,.12); transform: translateY(-1px); }}
+    .efs-tl .t {{ font-weight:700; color:{NAVY}; }}
+    .efs-tl .m {{ font-size:.78rem; color:{GREY}; margin-top:3px; display:flex; flex-wrap:wrap; gap:4px 12px; align-items:center; }}
+    .efs-hash {{ font-family: ui-monospace, Menlo, monospace; font-size:.7rem; background:#EEF2F7; color:{NAVY}; padding:1px 6px; border-radius:5px; }}
+    @media (max-width: 768px) {{ .efs-hero {{ grid-template-columns: 1fr; }} .efs-topicon {{ width:38px; height:38px; }} }}
     .efs-topbar h1 {{ font-size: 1.25rem; margin: 0; color: white; }}
     .efs-topbar .sub {{ font-size: 0.8rem; opacity: 0.85; margin-top: 2px; }}
     .efs-badge {{
@@ -85,15 +109,16 @@ def inject_css():
     }}
 
     .efs-card {{
-        background: {CARD}; border: 1px solid {BORDER}; border-radius: 10px;
-        padding: 16px 18px; margin-bottom: 12px;
+        background: {CARD}; border: 1px solid {BORDER}; border-radius: 12px;
+        padding: 16px 18px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(31,56,100,.06);
     }}
     .efs-metric {{
         background: {CARD}; border: 1px solid {BORDER}; border-left: 4px solid {TEAL};
-        border-radius: 8px; padding: 12px 16px;
+        border-radius: 10px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(31,56,100,.06);
+        background: linear-gradient(180deg, #FFFFFF 0%, #F7FAFB 100%);
     }}
     .efs-metric .val {{ font-size: 1.6rem; font-weight: 700; color: {NAVY}; }}
-    .efs-metric .lbl {{ font-size: 0.78rem; color: {GREY}; text-transform: uppercase; letter-spacing: .04em; }}
+    .efs-metric .lbl {{ overflow-wrap: normal; word-break: normal; hyphens: none; font-size: 0.72rem; color: {GREY}; text-transform: uppercase; letter-spacing: .04em; }}
 
     .efs-pill {{
         display: inline-block; padding: 2px 10px; border-radius: 12px;
@@ -168,14 +193,17 @@ def tag_custom(label="Tradify custom build"):
 
 
 def topbar(title: str, subtitle: str = ""):
+    import icons
     prof = current_profile()
+    key = title.split(" ")[0].strip("·") if title[:1].isdigit() else "home"
+    ic = icons.svg(icons.PAGE_ICON.get(key, "document"), 26, "#FFFFFF", 1.6)
     st.markdown(f"""
     <div class="efs-topbar">
-        <div>
-            <h1>{tr(title)}</h1>
-            <div class="sub">{tr(subtitle)}</div>
+        <div style="display:flex;gap:14px;align-items:center">
+            <span class="efs-topicon">{ic}</span>
+            <div><h1>{tr(title)}</h1><div class="sub">{tr(subtitle)}</div></div>
         </div>
-        <div class="efs-badge">👤 {current_user()} &nbsp;·&nbsp; {prof['role']} &nbsp;·&nbsp; {prof['dept']}</div>
+        <div class="efs-badge">{icons.avatar(current_user(), 24, "#2E8B8B")}&nbsp; {current_user()} &nbsp;·&nbsp; {prof['role']} &nbsp;·&nbsp; {prof['dept']}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -210,7 +238,8 @@ def sidebar_nav():
     names = list(ROLES.keys())
     current = current_user()
     with st.sidebar:
-        st.markdown("### 📁 EDMS Demo")
+        import icons as _ic
+        st.markdown(f'<div style="display:flex;align-items:center;gap:10px;margin:4px 0 2px 0">{_ic.chip("database", "#2E8B8B", 38)}<div style="font-weight:800;color:{NAVY};font-size:1.15rem;line-height:1.1">EDMS<br><span style="font-weight:500;font-size:.72rem;color:{GREY}">Working Demo</span></div></div>', unsafe_allow_html=True)
         st.caption(tr("Enterprise Document Management System"))
         with st.form("quick_search", clear_on_submit=True):
             qs = st.text_input("Quick search", placeholder="🔎 Search documents & scans", label_visibility="collapsed", key="qs_sidebar")

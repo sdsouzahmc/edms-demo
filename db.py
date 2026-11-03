@@ -165,7 +165,18 @@ def init_db():
     """)
     conn.commit()
     conn.close()
+    _migrate_audit()
     _seed_access_grants()
+
+
+def _migrate_audit():
+    conn = get_conn()
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(audit_log)")}
+    for c in ("field", "old_value", "new_value", "ip", "channel"):
+        if c not in cols:
+            conn.execute(f"ALTER TABLE audit_log ADD COLUMN {c} TEXT")
+    conn.commit()
+    conn.close()
 
 
 def ensure_seeded():
@@ -177,6 +188,8 @@ def ensure_seeded():
     if existing == 0:
         import seed as _seed_module
         _seed_module.run()
+        import audit_ext
+        audit_ext.seed_history()
 
 
 def _seed_access_grants():
@@ -196,11 +209,13 @@ def _seed_access_grants():
 
 
 # ------------------------------------------------------------- audit log ---
-def log_audit(document_id, actor, action, detail="", result="Success"):
+def log_audit(document_id, actor, action, detail="", result="Success", field=None, old=None, new=None):
     conn = get_conn()
     conn.execute(
-        "INSERT INTO audit_log (document_id, actor, action, detail, result, ts) VALUES (?,?,?,?,?,?)",
-        (document_id, actor, action, detail, result, now()))
+        "INSERT INTO audit_log (document_id, actor, action, detail, result, ts, field, old_value, new_value, ip, channel) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        (document_id, actor, action, detail, result, now(), field,
+         None if old is None else str(old), None if new is None else str(new), "10.20.4.37", "Web"))
     conn.commit()
     conn.close()
 
@@ -310,11 +325,13 @@ def find_by_qr(token):
 
 def update_document_text(doc_id, body_text, actor, note="OCR text updated"):
     conn = get_conn()
+    _old = conn.execute("SELECT body_text FROM documents WHERE id=?", (doc_id,)).fetchone()
+    _old = _old["body_text"] if _old else ""
     conn.execute("UPDATE documents SET body_text=?, modified_by=?, modified_at=? WHERE id=?",
                  (body_text, actor, now(), doc_id))
     conn.commit()
     conn.close()
-    log_audit(doc_id, actor, "Edited", note)
+    log_audit(doc_id, actor, "Edited", note, field="body_text", old=_old, new=body_text)
 
 
 # --------------------------------------------------------------- versions --
@@ -418,6 +435,7 @@ def advance_workflow(doc_id, action, actor, comment=""):
         conn.close()
         return False
     ts = now()
+    _old_status = cur.execute("SELECT status FROM documents WHERE id=?", (doc_id,)).fetchone()["status"]
     if action == "approve":
         cur.execute("UPDATE workflow SET status='done', acted_by=?, acted_at=?, comment=? WHERE id=?",
                     (actor, ts, comment, active["id"]))
@@ -444,9 +462,10 @@ def advance_workflow(doc_id, action, actor, comment=""):
         cur.execute("UPDATE documents SET status='Rejected', modified_by=?, modified_at=? WHERE id=?",
                     (actor, ts, doc_id))
         log_msg = ("Rejected", f"{active['stage']} stage rejected — {comment}")
+    _new_status = cur.execute("SELECT status FROM documents WHERE id=?", (doc_id,)).fetchone()["status"]
     conn.commit()
     conn.close()
-    log_audit(doc_id, actor, *log_msg)
+    log_audit(doc_id, actor, *log_msg, field="status", old=_old_status, new=_new_status)
     return True
 
 
@@ -483,11 +502,12 @@ def get_correspondence(limit=200):
 # -------------------------------------------------------------- retention --
 def archive_document(doc_id, actor):
     conn = get_conn()
+    _o = conn.execute("SELECT status FROM documents WHERE id=?", (doc_id,)).fetchone()["status"]
     conn.execute("UPDATE documents SET status='Archived', archived_at=?, modified_by=?, modified_at=? WHERE id=?",
                  (now(), actor, now(), doc_id))
     conn.commit()
     conn.close()
-    log_audit(doc_id, actor, "Archived", "Moved to archive library per retention schedule")
+    log_audit(doc_id, actor, "Archived", "Moved to archive library per retention schedule", field="status", old=_o, new="Archived")
 
 
 def toggle_legal_hold(doc_id, actor, hold: bool):
@@ -495,7 +515,7 @@ def toggle_legal_hold(doc_id, actor, hold: bool):
     conn.execute("UPDATE documents SET legal_hold=? WHERE id=?", (1 if hold else 0, doc_id))
     conn.commit()
     conn.close()
-    log_audit(doc_id, actor, "Legal Hold " + ("Applied" if hold else "Released"))
+    log_audit(doc_id, actor, "Legal Hold " + ("Applied" if hold else "Released"), field="legal_hold", old=0 if hold else 1, new=1 if hold else 0)
 
 
 def request_disposal(doc_id, actor, reason):

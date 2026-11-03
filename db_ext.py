@@ -59,6 +59,8 @@ def init_ext():
     conn.close()
     import distribution
     distribution.init_dist()
+    import audit_ext
+    audit_ext.seed_history()
 
 
 # ------------------------------------------------------------- numbering ---
