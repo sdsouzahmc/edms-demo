@@ -370,3 +370,13 @@ AR_MAP.update({"Notifications": "الإشعارات", "Awaiting approval": "با
     "Ask for a document… e.g. “pending finance invoices” or press 🎤": "اطلب مستنداً… مثال: «فواتير مالية معلقة» أو اضغط 🎤",
     "Workflow stage": "مرحلة سير العمل", "Owner": "المالك", "Created": "تاريخ الإنشاء", "Expires": "ينتهي", "Routed to": "وُجّه إلى", "Last activity": "آخر نشاط", "Sender → recipient": "المرسل ← المستلم",
     "Security": "الأمان", "Clear conversation": "مسح المحادثة", "Open": "فتح", "Saved": "محفوظ"})
+
+AR_MAP.update({"17 · Workflow Designer": "١٧ · مصمّم سير العمل", "Workflow Designer": "مصمّم سير العمل",
+    "Design approval flows visually · conditions, assignees, SLA, e-signature · simulate · publish live with versioning": "صمّم مسارات الاعتماد بصرياً · شروط، مسؤولون، مهل، توقيع إلكتروني · محاكاة · نشر مباشر مع الإصدارات",
+    "Document type (blank = department default)": "نوع المستند (فارغ = الافتراضي للقسم)", "Start from a template": "ابدأ من قالب", "Designer": "المصمّم", "Simulate": "محاكاة", "Versions": "الإصدارات", "Live designs": "التصاميم الحيّة",
+    "Add a step": "إضافة خطوة", "Select a step to edit": "اختر خطوة للتعديل", "Step name": "اسم الخطوة", "Step type": "نوع الخطوة", "Assigned to": "مُسند إلى", "Approver": "المعتمِد", "SLA (hours)": "المهلة (ساعات)",
+    "✍ Electronic signature required": "✍ التوقيع الإلكتروني مطلوب", "Run this step": "تنفيذ هذه الخطوة", "Value": "القيمة", "⬅ Move earlier": "⬅ تقديم", "Move later ➡": "تأخير ➡", "⧉ Duplicate": "⧉ نسخ", "🗑 Remove step": "🗑 حذف الخطوة",
+    "Check & publish": "تحقق وانشر", "Change note (kept in version history)": "ملاحظة التغيير (تُحفظ في سجل الإصدارات)", "💾 Save as draft": "💾 حفظ كمسودة", "🚀 Publish live": "🚀 نشر مباشر",
+    "↩ Restore & publish": "↩ استعادة ونشر", "Resulting path:": "المسار الناتج:", "Review": "مراجعة", "Approval": "اعتماد", "Sign-off": "اعتماد مالي", "Legal": "قانوني", "Quality": "جودة", "Clinical": "سريري", "Executive": "تنفيذي", "Acknowledge": "إقرار", "Notify": "إشعار",
+    "Always": "دائماً", "Classification is": "التصنيف هو", "Security level at least": "مستوى الأمان على الأقل", "Document type is finance-related": "نوع المستند مالي", "Document type is": "نوع المستند هو",
+    "Any approver": "أي معتمِد", "Head of department": "رئيس القسم", "Two approvers (all must approve)": "معتمِدان (يجب موافقة الجميع)", "(owner department)": "(قسم مالك المستند)"})

@@ -59,6 +59,8 @@ def init_ext():
     conn.close()
     import distribution
     distribution.init_dist()
+    import wfdesign
+    wfdesign.init()
     import accounts
     accounts.init_accounts()
     import audit_ext

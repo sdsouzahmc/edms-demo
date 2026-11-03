@@ -34,6 +34,7 @@ with tab1:
             <b>{w['title']}</b> — {w['doc_code']}<br>
             Stage: <b>{w['stage']}</b> &nbsp;·&nbsp; Department: {w['department']} &nbsp;·&nbsp;
             Classification: {w['classification']}
+            {(' &nbsp;·&nbsp; ⏱ SLA ' + str(w['sla_hours']) + 'h') if w['sla_hours'] else ''}{' &nbsp;·&nbsp; ✍ e-signature required' if w['esign_required'] else ''}
             </div>
             """, unsafe_allow_html=True)
             cc1, cc2, cc3, cc4 = st.columns([1, 1, 1.4, 1.4])

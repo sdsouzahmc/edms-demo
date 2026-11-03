@@ -262,14 +262,21 @@ def create_document(title, department, classification, security_level, doc_type,
         INSERT INTO versions (document_id, version_no, status, notes, body_snapshot, created_by, created_at)
         VALUES (?,?,?,?,?,?,?)
     """, (doc_id, "1.0", "Draft", "Initial capture", body_text, created_by, ts))
-    stages = db_ext.stages_for(department, doc_type)
-    for i, stage in enumerate(stages):
+    import wfdesign
+    design = wfdesign.resolve(department, doc_type, classification, security_level)
+    if design is not None:           # a published visual design governs this document
+        plan = [("Draft", department, None, 0)]
+        for s in design:
+            plan.append((s["name"], department if s["assignee"] == "(owner department)" else s["assignee"], s["sla_h"], 1 if s["esign"] else 0))
+        plan.append(("Released", department, None, 0))
+    else:
+        plan = [(st_, department if i == 0 else None, None, 0) for i, st_ in enumerate(db_ext.stages_for(department, doc_type))]
+    for i, (stage, assignee, sla, esg) in enumerate(plan):
         status = "active" if i == 0 else "pending"
-        assignee = department if i == 0 else None
         cur.execute("""
-            INSERT INTO workflow (document_id, stage, stage_order, status, assignee)
-            VALUES (?,?,?,?,?)
-        """, (doc_id, stage, i, status, assignee))
+            INSERT INTO workflow (document_id, stage, stage_order, status, assignee, sla_hours, esign_required)
+            VALUES (?,?,?,?,?,?,?)
+        """, (doc_id, stage, i, status, assignee, sla, esg))
     conn.commit()
     conn.close()
     log_audit(doc_id, created_by, "Created", f"{code} — {title}")
@@ -420,8 +427,8 @@ def get_pending_for_assignee(assignee_dept_or_all, is_admin_user=False):
         rows = conn.execute("""
             SELECT w.*, d.title, d.doc_code, d.department, d.classification
             FROM workflow w JOIN documents d ON d.id = w.document_id
-            WHERE w.status='active' AND d.department=? ORDER BY w.id DESC
-        """, (assignee_dept_or_all,)).fetchall()
+            WHERE w.status='active' AND (w.assignee=? OR (w.assignee IS NULL AND d.department=?)) ORDER BY w.id DESC
+        """, (assignee_dept_or_all, assignee_dept_or_all)).fetchall()
     conn.close()
     return rows
 

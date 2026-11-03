@@ -18,9 +18,9 @@ MODULES = {  # key -> (label, emoji, colour)
     "6": ("Search & Retrieval", "🔎", "#4A90C2"), "7": ("Audit, Governance & Reporting", "🧾", "#1F3864"), "8": ("Records, Archiving & Disposal", "🗄️", "#8D6E63"),
     "9": ("My Workspace", "💼", "#2E8B8B"), "10": ("Administration & Integrations", "⚙️", "#6B7280"), "11": ("RFP Coverage", "✅", "#2E7D32"),
     "12": ("Auto-Distribution", "📬", "#C0603C"), "13": ("Analytics & Insights", "📊", "#6C4FA3"), "14": ("User Management", "👥", "#1F6F78"),
-    "15": ("Role Management", "🔐", "#B00020"), "16": ("Ask EDMS — Search Assistant", "🤖", "#2E8B8B"),
+    "15": ("Role Management", "🔐", "#B00020"), "16": ("Ask EDMS — Search Assistant", "🤖", "#2E8B8B"), "17": ("Workflow Designer", "🧩", "#6C4FA3"),
 }
-ALL = [m for m in MODULES if m != "16"]   # 16 (assistant) is available to every signed-in role
+ALL = [m for m in MODULES if m not in ("16", "17")]   # 16 (assistant) is available to every signed-in role
 OPS = ["home", "1", "2", "3", "4", "6", "7", "8", "9", "12", "13"]
 MGR = ["home", "1", "3", "4", "6", "7", "9", "12", "13"]
 
@@ -142,7 +142,9 @@ def allowed_modules(user):
     u = conn.execute("SELECT role FROM app_users WHERE username=?", (user,)).fetchone()
     conn.close()
     r = role(u["role"]) if u else None
-    return (set(r["modules"]) | {"16"}) if r else {"home", "16"}
+    if not r:
+        return {"home", "16"}
+    return set(r["modules"]) | {"16"} | ({"17"} if r.get("level") == "admin" else set())
 
 
 def has_perm(user, perm):
