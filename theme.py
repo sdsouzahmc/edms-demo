@@ -68,6 +68,10 @@ def inject_css():
     st.markdown(f"""
     <style>
     [data-testid="stSidebarNav"] {{ display: none; }}
+    #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDeployButton"], [data-testid="stAppDeployButton"],
+    [data-testid="stMainMenu"], [data-testid="stStatusWidget"], [data-testid="stDecoration"], .stDeployButton, .viewerBadge_container__r5tak,
+    [class*="viewerBadge"], [data-testid="stHeaderActionElements"] {{ display: none !important; visibility: hidden !important; }}
+    header[data-testid="stHeader"] {{ background: transparent !important; height: 2.2rem; }}
     {RTL_CSS}
     html, body, [class*="css"] {{ font-family: 'Segoe UI', -apple-system, sans-serif; }}
     .stApp {{ background: {BG}; }}
@@ -245,6 +249,15 @@ def _label(label):
     return (emoji + " " if emoji else "") + tr(core)
 
 
+def _lang_switch(key="lang_radio"):
+    pick = st.radio("Language", ["English", "العربية"], index=0 if lang() == "en" else 1,
+                    horizontal=True, label_visibility="collapsed", key=key)
+    new_lang = "en" if pick == "English" else "ar"
+    if new_lang != lang():
+        st.session_state["lang"] = new_lang
+        st.rerun()
+
+
 def _login_screen():
     import accounts
     import icons
@@ -258,6 +271,9 @@ def _login_screen():
     .efs-rolecard { display:flex; gap:10px; align-items:center; background:#fff; border:1px solid #E2E6EC; border-left:5px solid var(--c); border-radius:12px;
         padding:9px 12px; margin-bottom:4px; }
     </style>""", unsafe_allow_html=True)
+    _sp, _lg = st.columns([3, 1.3])
+    with _lg:
+        _lang_switch()
     left, right = st.columns([1, 1.15], gap="large")
     with left:
         st.markdown(f"""<div class="efs-lhero">
@@ -346,6 +362,8 @@ def sidebar_nav():
                 '[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"][aria-current="page"] { box-shadow: 0 0 0 2px #1F386433; }'
                 "</style>", unsafe_allow_html=True)
     with st.sidebar:
+        st.markdown(f'<div style="font-size:.7rem;color:{GREY};margin:-6px 0 -10px 2px">🌐 {tr("Language")}</div>', unsafe_allow_html=True)
+        _lang_switch()
         st.markdown(f'<div style="display:flex;align-items:center;gap:10px;margin:4px 0 8px 0">{_ic.chip("database", "#2E8B8B", 38)}<div style="font-weight:800;color:{NAVY};font-size:1.15rem;line-height:1.1">EDMS<br><span style="font-weight:500;font-size:.72rem;color:{GREY}">Working Demo</span></div></div>', unsafe_allow_html=True)
         st.markdown(f"""<div style="background:linear-gradient(120deg,{NAVY} 0%,#1F6F78 100%);border-radius:14px;padding:12px 14px;color:#fff;display:flex;gap:10px;align-items:center;box-shadow:0 4px 12px rgba(21,40,69,.2)">
         {_ic.avatar(current, 42, rinfo['color'])}<div style="line-height:1.25"><div style="font-weight:700">{current}</div>
@@ -364,13 +382,6 @@ def sidebar_nav():
                     with st.container(key=f"nav_{k}"):
                         st.page_link(PAGE_FILES[k], label=_label(label), icon=accounts.MODULES[k][1])
         st.divider()
-        st.caption(tr("Language"))
-        pick = st.radio("Language", ["English", "العربية"], index=0 if lang() == "en" else 1,
-                        horizontal=True, label_visibility="collapsed", key="lang_radio")
-        new_lang = "en" if pick == "English" else "ar"
-        if new_lang != lang():
-            st.session_state["lang"] = new_lang
-            st.rerun()
         try:
             import db_ext
             unread = len(db_ext.get_notifications(current, only_unread=True))
@@ -381,6 +392,7 @@ def sidebar_nav():
     # mobile-only quick menu (sidebar is collapsed on phones)
     with st.container(key="mobilenav"):
         with st.expander("☰ Menu · pages & account"):
+            _lang_switch("lang_radio_m")
             for k, label in NAV:
                 if k in allowed:
                     st.page_link(PAGE_FILES[k], label=_label(label), icon=accounts.MODULES[k][1])
