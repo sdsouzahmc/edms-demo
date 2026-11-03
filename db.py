@@ -14,18 +14,10 @@ import datetime as dt
 DB_DIR = os.path.join(os.path.dirname(__file__), "data")
 DB_PATH = os.path.join(DB_DIR, "edms.db")
 
-DEPARTMENTS = [
-    "Medical Records", "Human Resources", "Finance", "Procurement",
-    "Facilities", "Clinical Operations",
-]
+from rfp_data import DEPARTMENTS, RETENTION_SCHEDULES
 CLASSIFICATIONS = ["Internal", "External", "Regulatory"]
 SECURITY_LEVELS = ["Public", "Internal", "Restricted", "Confidential"]
 WORKFLOW_STAGES = ["Draft", "Department Review", "Approval", "Finance Sign-off", "Released"]
-RETENTION_SCHEDULES = {
-    "HR Records - 7 years": 7, "Finance Records - 10 years": 10,
-    "Patient-Adjacent Admin - 10 years": 10, "Facility Records - 5 years": 5,
-    "General Correspondence - 3 years": 3, "Procurement Records - 6 years": 6,
-}
 
 
 def now():
@@ -234,7 +226,8 @@ def create_document(title, department, classification, security_level, doc_type,
                      retention_label=None):
     conn = get_conn()
     cur = conn.cursor()
-    code = make_code("DOC")
+    import db_ext
+    code = db_ext.next_code(department, doc_type)
     ts = now()
     retention_years = RETENTION_SCHEDULES.get(retention_label) if retention_label else None
     effective = dt.date.today().isoformat()
@@ -254,7 +247,7 @@ def create_document(title, department, classification, security_level, doc_type,
         INSERT INTO versions (document_id, version_no, status, notes, body_snapshot, created_by, created_at)
         VALUES (?,?,?,?,?,?,?)
     """, (doc_id, "1.0", "Draft", "Initial capture", body_text, created_by, ts))
-    stages = WORKFLOW_STAGES
+    stages = db_ext.stages_for(department, doc_type)
     for i, stage in enumerate(stages):
         status = "active" if i == 0 else "pending"
         assignee = department if i == 0 else None
@@ -283,7 +276,7 @@ def get_documents(department=None, status=None, classification=None, search=None
         q += " AND classification = ?"
         params.append(classification)
     if not include_disposed:
-        q += " AND status != 'Disposed'"
+        q += " AND status NOT IN ('Disposed','Deleted')"
     if search:
         q += " AND (title LIKE ? OR body_text LIKE ? OR doc_code LIKE ?)"
         like = f"%{search}%"
@@ -568,16 +561,16 @@ def finalize_destruction(request_id, actor):
 def stats():
     conn = get_conn()
     c = conn.cursor()
-    total = c.execute("SELECT COUNT(*) n FROM documents").fetchone()["n"]
+    total = c.execute("SELECT COUNT(*) n FROM documents WHERE status NOT IN ('Deleted')").fetchone()["n"]
     released = c.execute("SELECT COUNT(*) n FROM documents WHERE status='Released'").fetchone()["n"]
-    pending = c.execute("SELECT COUNT(*) n FROM workflow WHERE status='active'").fetchone()["n"]
+    pending = c.execute("SELECT COUNT(*) n FROM workflow w JOIN documents d ON d.id=w.document_id WHERE w.status='active' AND d.status NOT IN ('Deleted')").fetchone()["n"]
     archived = c.execute("SELECT COUNT(*) n FROM documents WHERE status='Archived'").fetchone()["n"]
     rejected = c.execute("SELECT COUNT(*) n FROM documents WHERE status='Rejected'").fetchone()["n"]
     expiring = c.execute(
         "SELECT COUNT(*) n FROM documents WHERE expiry_date IS NOT NULL AND expiry_date <= date('now','+90 day') AND status NOT IN ('Disposed')"
     ).fetchone()["n"]
-    by_dept = c.execute("SELECT department, COUNT(*) n FROM documents GROUP BY department").fetchall()
-    by_status = c.execute("SELECT status, COUNT(*) n FROM documents GROUP BY status").fetchall()
+    by_dept = c.execute("SELECT department, COUNT(*) n FROM documents WHERE status!='Deleted' GROUP BY department").fetchall()
+    by_status = c.execute("SELECT status, COUNT(*) n FROM documents WHERE status!='Deleted' GROUP BY status").fetchall()
     conn.close()
     return {
         "total": total, "released": released, "pending": pending, "archived": archived,

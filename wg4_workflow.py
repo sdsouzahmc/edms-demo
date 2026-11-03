@@ -1,5 +1,7 @@
 import streamlit as st
 import db
+import db_ext
+import rfp_data
 import theme
 
 db.init_db()
@@ -14,7 +16,8 @@ st.write("")
 profile = theme.current_profile()
 is_admin = theme.is_admin()
 
-tab1, tab2, tab3 = st.tabs(["📥 My Approval Queue", "📊 Workflow Dashboard", "🔀 All Documents in Flight"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📥 My Approval Queue", "📊 Workflow Dashboard", "🔀 All Documents in Flight",
+                                        "🛠 Workflow Designer", "⚡ Ad-hoc Routing"])
 
 with tab1:
     pending = db.get_pending_for_assignee(profile["dept"], is_admin)
@@ -36,8 +39,13 @@ with tab1:
             cc1, cc2, cc3, cc4 = st.columns([1, 1, 1.4, 1.4])
             with cc1:
                 if st.button("✅ Approve", key=f"appr_{w['id']}", type="primary"):
+                    sig = db_ext.log_esign(w["document_id"], theme.current_user(), w["stage"])
                     db.advance_workflow(w["document_id"], "approve", theme.current_user(),
-                                         "Approved via e-signature")
+                                         f"Approved via e-signature {sig}")
+                    nxt = db.get_document(w["document_id"])
+                    for sub in set(db_ext.subscribers_of(w["document_id"], nxt["classification"])):
+                        db_ext.notify(sub, f"{nxt['doc_code']} moved to {nxt['status']}.", w["document_id"], "approval")
+                    st.toast(f"E-signature applied: {sig}")
                     st.rerun()
             with cc2:
                 if st.button("❌ Reject", key=f"rej_{w['id']}"):
@@ -102,3 +110,48 @@ with tab3:
         stepper_html += "</div>"
         st.markdown(stepper_html, unsafe_allow_html=True)
         st.divider()
+
+
+with tab4:
+    st.markdown('<div class="efs-section-title">Configure approval chains per department & document type</div>',
+                unsafe_allow_html=True)
+    st.caption("Chains are configurable without code. New documents of the chosen department/type follow the saved chain "
+               "(Draft first, Released last). Finance sign-off is added automatically for financial document types.")
+    c1, c2 = st.columns(2)
+    with c1:
+        dpt = st.selectbox("Department", rfp_data.DEPARTMENTS, key="wd_dept")
+    with c2:
+        dtype = st.selectbox("Document type (blank = department default)", [""] + rfp_data.DOC_TYPES, key="wd_type")
+    current = db_ext.stages_for(dpt, dtype)
+    st.markdown("Current chain:")
+    st.markdown('<div class="efs-stepper">' + '<span class="efs-arrow">→</span>'.join(
+        f'<span class="efs-step">{x}</span>' for x in current) + "</div>", unsafe_allow_html=True)
+    optional = ["Department Review", "Legal Review", "Quality Review", "Clinical Review", "Approval", "Finance Sign-off",
+                "Executive Approval", "Acknowledgment"]
+    middle = st.multiselect("Intermediate stages (in order)", optional, default=[x for x in current if x not in ("Draft", "Released")],
+                            key=f"wd_mid_{dpt}_{dtype}")
+    if st.button("💾 Save workflow", disabled=not (theme.is_admin() or theme.current_profile()["dept"] == dpt)):
+        db_ext.save_template(dpt, dtype, ["Draft"] + middle + ["Released"], theme.current_user())
+        db.log_audit(None, theme.current_user(), "Workflow Configured", f"{dpt} / {dtype or 'default'}: " + " → ".join(middle))
+        st.success("Workflow saved. Register a new document for this department to see it in action.")
+        st.rerun()
+    st.markdown("**Saved templates**")
+    for t in db_ext.list_templates():
+        st.markdown(f"- **{t['department']}** · {t['doc_type'] or 'default'} → " + " → ".join(__import__('json').loads(t["stages"])))
+
+with tab5:
+    st.markdown('<div class="efs-section-title">Ad-hoc process — when the next best action is unpredictable</div>',
+                unsafe_allow_html=True)
+    st.caption("A knowledge worker can pull any department into a document on the fly (parallel review / acknowledgment).")
+    docs = [d for d in db.get_documents() if d["status"] not in ("Archived",)]
+    if docs:
+        dsel = st.selectbox("Document", [f"{d['doc_code']} — {d['title']}" for d in docs], key="adhoc_doc")
+        targets = st.multiselect("Request review / acknowledgment from", rfp_data.DEPARTMENTS, key="adhoc_depts")
+        note = st.text_input("Instruction", placeholder="e.g. Please confirm contract clauses by Thursday")
+        if st.button("⚡ Send ad-hoc request", disabled=not targets):
+            d = db.get_document_by_code(dsel.split(" — ")[0])
+            recipients = [n for n, p in rfp_data.ROLES.items() if p["dept"] in targets]
+            for n in recipients:
+                db_ext.notify(n, f"Ad-hoc review requested on {d['doc_code']}: {note or 'please review'}", d["id"], "approval")
+            db.log_audit(d["id"], theme.current_user(), "Ad-hoc Routing", f"Routed to {', '.join(targets)}: {note}")
+            st.success(f"Request sent to {', '.join(targets)} ({len(recipients)} user(s) notified).")

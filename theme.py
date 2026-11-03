@@ -13,29 +13,42 @@ BG = "#F4F6F9"
 CARD = "#FFFFFF"
 BORDER = "#E2E6EC"
 
-DEPARTMENTS = [
-    "Medical Records", "Human Resources", "Finance", "Procurement",
-    "Facilities", "Clinical Operations",
-]
+from rfp_data import DEPARTMENTS, ROLES  # noqa: E402
 
 CLASSIFICATIONS = ["Internal", "External", "Regulatory"]
-
 SECURITY_LEVELS = ["Public", "Internal", "Restricted", "Confidential"]
-
 WORKFLOW_STAGES = ["Draft", "Department Review", "Approval", "Finance Sign-off", "Released"]
 
-ROLES = {
-    "Sara Al-Ansari": {"role": "Records Officer", "dept": "Medical Records", "level": "department_user",
-                        "can_approve": True},
-    "Omar Al-Kaabi": {"role": "HR User", "dept": "Human Resources", "level": "department_user",
-                       "can_approve": True},
-    "Fatima Al-Sulaiti": {"role": "Finance User", "dept": "Finance", "level": "department_user",
-                           "can_approve": True},
-    "Yusuf Al-Marri": {"role": "Administrator", "dept": "IT", "level": "admin",
-                        "can_approve": True},
+CURRENT_USER_KEY = "current_user"
+
+
+AR = {
+    "Home / Lifecycle Story": "الرئيسية", "Home": "الرئيسية",
+    "1 · Correspondence & Intake": "١ · المراسلات والاستلام", "2 · OCR & Intelligent Capture": "٢ · التعرف الضوئي والالتقاط الذكي",
+    "3 · Document Control & Versioning": "٣ · التحكم بالوثائق والإصدارات", "4 · Workflow & Approvals": "٤ · سير العمل والاعتمادات",
+    "5 · Security & Compliance": "٥ · الأمن والامتثال", "6 · Search & Retrieval": "٦ · البحث والاسترجاع",
+    "7 · Audit, Governance & Reporting": "٧ · التدقيق والحوكمة والتقارير", "8 · Records, Archiving & Disposal": "٨ · السجلات والأرشفة والإتلاف",
+    "9 · My Workspace": "٩ · مساحة عملي", "10 · Administration & Integrations": "١٠ · الإدارة والتكامل",
+    "11 · RFP Coverage": "١١ · مصفوفة الامتثال",
+    "Enterprise Document Management System — Working Demo": "نظام إدارة الوثائق المؤسسي — عرض تشغيلي",
+    "Total Documents": "إجمالي الوثائق", "Released": "الوثائق المصدرة", "Pending Approval": "بانتظار الاعتماد",
+    "Archived": "المؤرشفة", "Expiring ≤90 days": "تنتهي خلال ٩٠ يوماً", "Rejected": "المرفوضة",
+    "Enterprise Document Management System": "نظام إدارة الوثائق المؤسسي", "Viewing as": "المستخدم الحالي",
+    "My Workspace": "مساحة عملي", "Administration & Integrations": "الإدارة والتكامل",
+    "Draft": "مسودة", "Department Review": "مراجعة القسم", "Approval": "اعتماد", "Finance Sign-off": "اعتماد مالي",
+    "Documents visible to this user": "الوثائق المتاحة للمستخدم", "Language": "اللغة",
 }
 
-CURRENT_USER_KEY = "current_user"
+
+def lang() -> str:
+    return st.session_state.get("lang", "en")
+
+
+def tr(text: str) -> str:
+    """Translate UI strings to Arabic when the Arabic interface is selected (RFP 2.3.9 / 3.09)."""
+    if lang() == "ar":
+        return AR.get(text, text)
+    return text
 
 
 def current_user() -> str:
@@ -51,9 +64,11 @@ def is_admin() -> bool:
 
 
 def inject_css():
+    RTL_CSS = '[data-testid="stMain"], [data-testid="stSidebar"] { direction: rtl; text-align: right; }' if lang() == 'ar' else ''
     st.markdown(f"""
     <style>
     [data-testid="stSidebarNav"] {{ display: none; }}
+    {RTL_CSS}
     html, body, [class*="css"] {{ font-family: 'Segoe UI', -apple-system, sans-serif; }}
     .stApp {{ background: {BG}; }}
 
@@ -157,8 +172,8 @@ def topbar(title: str, subtitle: str = ""):
     st.markdown(f"""
     <div class="efs-topbar">
         <div>
-            <h1>{title}</h1>
-            <div class="sub">{subtitle}</div>
+            <h1>{tr(title)}</h1>
+            <div class="sub">{tr(subtitle)}</div>
         </div>
         <div class="efs-badge">👤 {current_user()} &nbsp;·&nbsp; {prof['role']} &nbsp;·&nbsp; {prof['dept']}</div>
     </div>
@@ -168,56 +183,63 @@ def topbar(title: str, subtitle: str = ""):
 def metric_card(label, value, col=None):
     target = col if col is not None else st
     target.markdown(f"""
-    <div class="efs-metric"><div class="val">{value}</div><div class="lbl">{label}</div></div>
+    <div class="efs-metric"><div class="val">{value}</div><div class="lbl">{tr(label)}</div></div>
     """, unsafe_allow_html=True)
 
 
 PAGE_FILES = {
-    "home": "home_view.py",
-    "1": "wg1_correspondence.py",
-    "2": "wg2_ocr.py",
-    "3": "wg3_document_control.py",
-    "4": "wg4_workflow.py",
-    "5": "wg5_security.py",
-    "6": "wg6_search.py",
-    "7": "wg7_audit.py",
-    "8": "wg8_records.py",
+    "home": "home_view.py", "1": "wg1_correspondence.py", "2": "wg2_ocr.py", "3": "wg3_document_control.py",
+    "4": "wg4_workflow.py", "5": "wg5_security.py", "6": "wg6_search.py", "7": "wg7_audit.py",
+    "8": "wg8_records.py", "9": "wg9_workspace.py", "10": "wg10_admin.py", "11": "wg11_coverage.py",
 }
+NAV = [("home", "🏠 Home / Lifecycle Story"), ("1", "1 · Correspondence & Intake"), ("2", "2 · OCR & Intelligent Capture"),
+       ("3", "3 · Document Control & Versioning"), ("4", "4 · Workflow & Approvals"), ("5", "5 · Security & Compliance"),
+       ("6", "6 · Search & Retrieval"), ("7", "7 · Audit, Governance & Reporting"), ("8", "8 · Records, Archiving & Disposal"),
+       ("9", "9 · My Workspace"), ("10", "10 · Administration & Integrations"), ("11", "11 · RFP Coverage")]
+
+
+def _label(label):
+    emoji = label.split(" ")[0] if label[0] in "🏠" else ""
+    core = label.replace("🏠 ", "")
+    return (emoji + " " if emoji else "") + tr(core)
 
 
 def sidebar_nav():
+    names = list(ROLES.keys())
+    current = current_user()
     with st.sidebar:
-        st.markdown(f"### 📁 EDMS Demo")
-        st.caption("Enterprise Document Management System")
+        st.markdown("### 📁 EDMS Demo")
+        st.caption(tr("Enterprise Document Management System"))
         st.divider()
-        st.page_link(PAGE_FILES["home"], label="🏠 Home / Lifecycle Story", icon=None)
-        st.page_link(PAGE_FILES["1"], label="1 · Correspondence & Intake")
-        st.page_link(PAGE_FILES["2"], label="2 · OCR & Intelligent Capture")
-        st.page_link(PAGE_FILES["3"], label="3 · Document Control & Versioning")
-        st.page_link(PAGE_FILES["4"], label="4 · Workflow & Approvals")
-        st.page_link(PAGE_FILES["5"], label="5 · Security & Compliance")
-        st.page_link(PAGE_FILES["6"], label="6 · Search & Retrieval")
-        st.page_link(PAGE_FILES["7"], label="7 · Audit, Governance & Reporting")
-        st.page_link(PAGE_FILES["8"], label="8 · Records, Archiving & Disposal")
+        for k, label in NAV:
+            st.page_link(PAGE_FILES[k], label=_label(label))
         st.divider()
-        st.caption("Viewing as")
-        names = list(ROLES.keys())
-        current = current_user()
-        choice = st.selectbox("Switch user / role", names, index=names.index(current),
-                               label_visibility="collapsed")
+        st.caption(tr("Language"))
+        pick = st.radio("Language", ["English", "العربية"], index=0 if lang() == "en" else 1,
+                        horizontal=True, label_visibility="collapsed", key="lang_radio")
+        new_lang = "en" if pick == "English" else "ar"
+        if new_lang != lang():
+            st.session_state["lang"] = new_lang
+            st.rerun()
+        st.caption(tr("Viewing as"))
+        choice = st.selectbox("Switch user / role", names, index=names.index(current), label_visibility="collapsed")
         if choice != current:
             st.session_state[CURRENT_USER_KEY] = choice
             st.rerun()
         prof = ROLES[choice]
         st.caption(f"{prof['role']} · {prof['dept']}")
+        try:
+            import db_ext
+            unread = len(db_ext.get_notifications(choice, only_unread=True))
+            if unread:
+                st.page_link(PAGE_FILES["9"], label=f"🔔 {unread} new notification(s)")
+        except Exception:
+            pass
     # mobile-only quick menu (sidebar is collapsed on phones)
     with st.container(key="mobilenav"):
         with st.expander("☰ Menu · pages & switch user"):
-            for k, label in [("home", "🏠 Home"), ("1", "1 · Correspondence & Intake"), ("2", "2 · OCR & Capture"),
-                              ("3", "3 · Document Control"), ("4", "4 · Workflow & Approvals"),
-                              ("5", "5 · Security"), ("6", "6 · Search"), ("7", "7 · Audit & Reporting"),
-                              ("8", "8 · Records & Disposal")]:
-                st.page_link(PAGE_FILES[k], label=label)
+            for k, label in NAV:
+                st.page_link(PAGE_FILES[k], label=_label(label))
             m_choice = st.selectbox("Viewing as", names, index=names.index(choice), key="m_user")
             if m_choice != choice:
                 st.session_state[CURRENT_USER_KEY] = m_choice

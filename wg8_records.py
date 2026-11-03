@@ -1,5 +1,7 @@
 import streamlit as st
 import db
+import db_ext
+import rfp_data
 import theme
 import datetime as dt
 import qrcode
@@ -14,8 +16,8 @@ theme.topbar("8 · Records Management, Archiving & Disposal Workgroup",
 st.markdown(f"{theme.tag_custom('Retention automation engine')}", unsafe_allow_html=True)
 st.write("")
 
-tab1, tab2, tab3, tab4 = st.tabs(["⏳ Retention & Archive", "🗑️ Disposal Workflow",
-                                    "📦 Archived Documents", "✅ QR Verification"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["⏳ Retention & Archive", "🗑️ Disposal Workflow", "📦 Archived Documents",
+                                              "✅ QR Verification", "🗄️ Physical & Intermediate Records"])
 
 with tab1:
     docs = db.get_documents()
@@ -164,3 +166,46 @@ with tab4:
                 db.log_audit(found["id"], theme.current_user(), "QR Verified", "True-copy check performed")
             else:
                 st.error("❌ Not found — this token does not match any released document.")
+
+
+with tab5:
+    st.markdown('<div class="efs-section-title">Physical & intermediate records registry</div>', unsafe_allow_html=True)
+    st.caption("Paper and intermediate records transferred by departments — on site or at an external storage provider — "
+               "are tracked with location, custodian and retention date, and follow the same approved retention schedules.")
+    recs = db_ext.list_physical()
+    c1, c2, c3 = st.columns(3)
+    theme.metric_card("Boxes registered", len(recs), c1)
+    theme.metric_card("At external storage", len([r for r in recs if "Offsite" in (r["site"] or "")]), c2)
+    theme.metric_card("Checked out", len([r for r in recs if r["status"] == "Checked Out"]), c3)
+    st.write("")
+    for r in recs:
+        st.markdown(f"""<div class="efs-card">📦 <b>{r['box_code']}</b> — {r['description']}<br>
+        {r['department']} · {r['site']} · {r['location']} · custodian: {r['custodian']}<br>
+        <span style="font-size:0.8rem;color:#6B7280">retain until {r['retention_until']} · status: <b>{r['status']}</b></span></div>""",
+                    unsafe_allow_html=True)
+        cc1, cc2 = st.columns(2)
+        with cc1:
+            if r["status"] == "In Storage" and st.button("📤 Retrieve / check out", key=f"pr_out_{r['id']}"):
+                db_ext.set_physical_status(r["id"], "Checked Out", theme.current_user())
+                db.log_audit(None, theme.current_user(), "Physical Record Retrieved", r["box_code"])
+                st.rerun()
+        with cc2:
+            if r["status"] == "Checked Out" and st.button("📥 Return to storage", key=f"pr_in_{r['id']}"):
+                db_ext.set_physical_status(r["id"], "In Storage")
+                db.log_audit(None, theme.current_user(), "Physical Record Returned", r["box_code"])
+                st.rerun()
+    st.markdown("**Register a new box**")
+    with st.form("new_box"):
+        a, b = st.columns(2)
+        with a:
+            code = st.text_input("Box code", value=f"BX-{len(recs) + 1:04d}")
+            desc = st.text_input("Description")
+            dept = st.selectbox("Department", rfp_data.DEPARTMENTS)
+        with b:
+            site = st.selectbox("Site", ["Main Campus — Doha", "Offsite Storage Provider"])
+            loc = st.text_input("Location", placeholder="Room / rack / bay")
+            until = st.date_input("Retain until")
+        if st.form_submit_button("Register box", type="primary") and desc:
+            db_ext.add_physical(code, desc, dept, site, loc, theme.current_user(), until.isoformat())
+            db.log_audit(None, theme.current_user(), "Physical Record Registered", f"{code} — {desc}")
+            st.rerun()

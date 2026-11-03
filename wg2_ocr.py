@@ -48,6 +48,20 @@ lang_choice = st.radio("OCR Language", ["English + Arabic (auto)", "English only
                         horizontal=True)
 lang_map = {"English + Arabic (auto)": "eng+ara", "English only": "eng", "Arabic only": "ara"}
 
+with st.expander("🎚 Capture station controls — image enhancement, zonal OCR, multi-location filing"):
+    e1, e2, e3 = st.columns(3)
+    with e1:
+        bright = st.slider("Brightness", 0.5, 1.8, 1.0, 0.05)
+        contrast = st.slider("Contrast", 0.5, 2.5, 1.0, 0.05)
+    with e2:
+        despeckle = st.checkbox("De-speckle", value=False)
+        sharpen = st.checkbox("Sharpen / line clean-up", value=False)
+        deskew = st.number_input("De-skew rotation (degrees)", -10.0, 10.0, 0.0, 0.5)
+    with e3:
+        zonal = st.checkbox("Zonal OCR (read only a region)", value=False)
+        zy0, zy1 = st.slider("Vertical zone (% of page)", 0, 100, (0, 100), disabled=not zonal)
+    file_to = st.multiselect("Also file a copy to (multiple archive / workflow locations)", db.DEPARTMENTS, key="ocr_multi")
+
 run_clicked = st.button("▶ Run OCR Extraction", type="primary")
 
 if run_clicked:
@@ -63,6 +77,19 @@ if run_clicked:
     if img is None:
         st.error("Select or upload an image first.")
     else:
+        from PIL import ImageEnhance, ImageFilter
+        img = ImageEnhance.Brightness(img).enhance(bright)
+        img = ImageEnhance.Contrast(img).enhance(contrast)
+        if deskew:
+            img = img.rotate(deskew, expand=True, fillcolor="white")
+        if despeckle:
+            img = img.filter(ImageFilter.MedianFilter(3))
+        if sharpen:
+            img = img.filter(ImageFilter.SHARPEN)
+        if zonal:
+            w_, h_ = img.size
+            img = img.crop((0, int(h_ * zy0 / 100), w_, max(int(h_ * zy1 / 100), int(h_ * zy0 / 100) + 20)))
+        st.image(img, caption="Image sent to OCR (after enhancement" + (" · zonal crop" if zonal else "") + ")", width=300)
         with st.spinner("Running Tesseract OCR engine…"):
             text = run_ocr(img, lang=lang_map[lang_choice])
         meta = extract_metadata(text)
@@ -99,6 +126,15 @@ if run_clicked:
                 )
                 db.log_audit(doc_id, theme.current_user(), "OCR Capture",
                               f"Captured via Tesseract ({lang_map[lang_choice]}) from {source_name}")
+                import db_ext
+                for extra in file_to:
+                    if extra != dept:
+                        db.log_audit(doc_id, theme.current_user(), "Filed to Additional Location", extra)
+                        for n, p in db_ext.rfp_data.ROLES.items():
+                            if p["dept"] == extra:
+                                db_ext.notify(n, f"Scanned document {code} filed to your department.", doc_id, "info")
+                if file_to:
+                    st.info("Also filed to: " + ", ".join(file_to))
                 st.success(f"Saved as **{code}**. Fully searchable via OCR'd text — try the Search & Retrieval page.")
 
 st.markdown("---")

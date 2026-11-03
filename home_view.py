@@ -50,6 +50,12 @@ with left:
          theme.PAGE_FILES["7"]),
         ("8", "Records, Archiving & Disposal", "Retention countdown, archive, disposal request, destruction evidence",
          theme.PAGE_FILES["8"]),
+        ("9", "My Workspace", "Personal dashboard: recent files, bookmarks, pending workflows, notifications, recycle bin",
+         theme.PAGE_FILES["9"]),
+        ("10", "Administration & Integrations", "AD/SSO sync, Outlook, Office 365, EMR, multi-site, DR, backup & point-in-time restore",
+         theme.PAGE_FILES["10"]),
+        ("11", "RFP Coverage", "Traceability from every RFP requirement group to where this demo proves it",
+         theme.PAGE_FILES["11"]),
     ]
     for num, title, desc, path in steps:
         cc1, cc2 = st.columns([0.08, 0.92])
@@ -82,7 +88,7 @@ with right:
     dept_values = [r["n"] for r in s["by_dept"]]
     fig2 = go.Figure(data=[go.Bar(x=dept_values, y=dept_labels, orientation="h",
                                    marker=dict(color="#2E8B8B"))])
-    fig2.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=260)
+    fig2.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=max(260, 24*len(dept_labels)))
     st.plotly_chart(fig2, use_container_width=True)
 
 st.markdown('<div class="efs-section-title">🧩 Technology Legend</div>', unsafe_allow_html=True)

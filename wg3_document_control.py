@@ -1,5 +1,6 @@
 import streamlit as st
 import db
+import db_ext
 import theme
 import difflib
 
@@ -38,12 +39,16 @@ with c2:
     else:
         st.success("🔓 Available for check-out")
 
-tabs = st.tabs(["✏️ Check-out / Check-in", "🕒 Version History", "🔍 Compare Versions", "📣 Publish / Obsolete"])
+declared = db_ext.is_declared(doc_id)
+tabs = st.tabs(["✏️ Check-out / Check-in", "🕒 Version History", "🔍 Compare Versions", "📣 Publish / Obsolete",
+                "🖍 Viewer · Annotate · Redact", "🔏 Declare Record"])
 
 with tabs[0]:
     st.markdown('<div class="efs-section-title">Check-out, edit, check back in as a new version</div>',
                  unsafe_allow_html=True)
-    if not locked_by:
+    if declared:
+        st.error("🔏 This is a declared record — it cannot be checked out or altered (including its metadata).")
+    elif not locked_by:
         if st.button("🔒 Check Out for Editing", type="primary"):
             db.checkout_document(doc_id, theme.current_user())
             st.rerun()
@@ -118,3 +123,97 @@ with tabs[3]:
                 target = obsolete_candidates[[f"v{v['version_no']} ({v['status']})" for v in obsolete_candidates].index(pick)]
                 db.mark_version_obsolete(doc_id, target["id"], theme.current_user())
                 st.rerun()
+
+with tabs[4]:
+    user = theme.current_user()
+    st.markdown('<div class="efs-section-title">Built-in viewer with secured annotation & redaction</div>', unsafe_allow_html=True)
+    db_ext.log_view(user, doc_id)
+    anns = db_ext.get_annotations(doc_id)
+    can_see_through = theme.is_admin()
+    visible_anns = [a for a in anns if not a["restricted"] or a["user"] == user or theme.is_admin()]
+    vc1, vc2, vc3 = st.columns(3)
+    with vc1:
+        zoom = st.slider("Zoom", 80, 200, 110, step=10, help="Viewer zoom (%)")
+    with vc2:
+        show_ann = st.checkbox("Show annotations", value=True)
+    with vc3:
+        see_through = st.checkbox("See through redactions (admin only)", value=False, disabled=not can_see_through)
+
+    import html as _h
+    text = _h.escape(doc["body_text"] or "")
+    if show_ann:
+        for a in visible_anns:
+            tgt = _h.escape(a["target"] or "")
+            if not tgt or tgt not in text:
+                continue
+            if a["kind"] == "Highlight":
+                text = text.replace(tgt, f"<mark>{tgt}</mark>")
+            elif a["kind"] == "Underline":
+                text = text.replace(tgt, f"<u>{tgt}</u>")
+            elif a["kind"] == "Sticky note":
+                text = text.replace(tgt, f"<mark style='background:#FFE9A8'>{tgt}</mark> <sup title='{_h.escape(a['text'] or '')}'>📝</sup>")
+            elif a["kind"] == "Stamp":
+                text = text.replace(tgt, f"{tgt} <span style='border:1px solid #B00020;color:#B00020;padding:0 4px;font-size:0.7rem'>{_h.escape(a['text'] or 'STAMP')}</span>")
+    for a in visible_anns:
+        if a["kind"] == "Redaction":
+            tgt = _h.escape(a["target"] or "")
+            if tgt and tgt in text:
+                if see_through and can_see_through:
+                    text = text.replace(tgt, f"<span style='background:#FBE3E7'>{tgt}</span>")
+                else:
+                    text = text.replace(tgt, f"<span title='Reason: {_h.escape(a['reason'] or '')}' style='background:#111;color:#111'>{'█' * max(4, len(tgt))}</span>")
+    st.markdown(f"<div class='efs-card' style='font-size:{zoom}%;white-space:pre-wrap'>{text}</div>", unsafe_allow_html=True)
+
+    st.markdown("**Add annotation** (the original is never changed — annotations are a removable layer)")
+    a1, a2 = st.columns(2)
+    with a1:
+        kind = st.selectbox("Type", ["Highlight", "Underline", "Sticky note", "Stamp", "Redaction"])
+        target = st.text_input("Text to mark (must appear in the document)", key="ann_target")
+    with a2:
+        note = st.text_input("Note / stamp text", key="ann_note", placeholder="e.g. APPROVED, REVIEWED")
+        reason = st.selectbox("Redaction reason", ["Patient PII", "Patient PHI", "Commercial confidentiality", "Legal privilege", "Personal data (PDPPL)"],
+                              disabled=(kind != "Redaction"))
+        restricted = st.checkbox("Visible only to me and administrators", value=False)
+    if st.button("➕ Add annotation", type="primary"):
+        if not target or target not in (doc["body_text"] or ""):
+            st.error("Text to mark must exactly match text in the document.")
+        else:
+            db_ext.add_annotation(doc_id, user, kind, note, target, reason if kind == "Redaction" else "", int(restricted))
+            st.rerun()
+    for a in visible_anns:
+        c1, c2 = st.columns([5, 1])
+        with c1:
+            st.markdown(f"{'🟨' if a['kind']=='Highlight' else '⬛' if a['kind']=='Redaction' else '📝'} **{a['kind']}** — “{a['target']}”"
+                        f"{' · reason: ' + a['reason'] if a['reason'] else ''}{' · ' + a['text'] if a['text'] else ''}  \n"
+                        f"<span style='color:#6B7280;font-size:0.8rem'>{a['user']} · {a['ts']}{' · restricted' if a['restricted'] else ''}</span>",
+                        unsafe_allow_html=True)
+        with c2:
+            if a["user"] == user or theme.is_admin():
+                if st.button("Remove", key=f"rmann_{a['id']}"):
+                    db_ext.delete_annotation(a["id"])
+                    st.rerun()
+    reds = [a for a in anns if a["kind"] == "Redaction"]
+    if reds and not declared and st.button("🔥 Publish redacted copy (burn in) as a new version"):
+        burned = doc["body_text"] or ""
+        for a in reds:
+            burned = burned.replace(a["target"], "█" * max(4, len(a["target"])))
+        newv = db.checkin_new_version(doc_id, user, burned, "Redacted copy — redactions burned in", "minor")
+        st.success(f"Created v{newv} with redactions permanently applied (original version retained in history).")
+        st.rerun()
+    dl = (doc["body_text"] or "")
+    st.download_button("🖨 Download / print without annotations", dl.encode("utf-8"), f"{doc['doc_code']}.txt")
+
+with tabs[5]:
+    user = theme.current_user()
+    st.markdown('<div class="efs-section-title">Register & declare as an official record</div>', unsafe_allow_html=True)
+    st.write("A declared record cannot be altered — content, metadata and check-out are all locked for every user, "
+             "preserving integrity for audits and accreditation.")
+    if declared:
+        who, when = declared.split("|")
+        st.success(f"🔏 Declared as a record by **{who}** on {when}. Immutable.")
+    elif doc["status"] in ("Released", "Archived"):
+        if st.button("🔏 Declare as record", type="primary"):
+            db_ext.declare_record(doc_id, user)
+            st.rerun()
+    else:
+        st.info("Only Released or Archived documents can be declared as records.")

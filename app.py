@@ -1,8 +1,10 @@
 import streamlit as st
 import db
+import db_ext
 
 st.set_page_config(page_title="EDMS Demo", page_icon="📁", layout="wide")
 db.init_db()
+db_ext.init_ext()
 db.ensure_seeded()
 
 pages = [
@@ -15,6 +17,9 @@ pages = [
     st.Page("wg6_search.py", title="6 · Search & Retrieval"),
     st.Page("wg7_audit.py", title="7 · Audit, Governance & Reporting"),
     st.Page("wg8_records.py", title="8 · Records, Archiving & Disposal"),
+    st.Page("wg9_workspace.py", title="9 · My Workspace"),
+    st.Page("wg10_admin.py", title="10 · Administration & Integrations"),
+    st.Page("wg11_coverage.py", title="11 · RFP Coverage"),
 ]
 
 pg = st.navigation(pages, position="hidden")

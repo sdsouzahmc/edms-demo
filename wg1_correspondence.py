@@ -1,5 +1,7 @@
 import streamlit as st
 import db
+import db_ext
+import rfp_data
 import theme
 from ocr_utils import extract_metadata, auto_name
 
@@ -9,7 +11,7 @@ theme.sidebar_nav()
 theme.topbar("1 · Correspondence & Document Intake Management",
              "Postal & email capture · registration · classification · QR verification")
 
-tab1, tab2 = st.tabs(["📥 Register New Correspondence", "📋 Incoming/Outgoing Register"])
+tab1, tab2, tab3 = st.tabs(["📥 Register New Correspondence", "📋 Incoming/Outgoing Register", "📤 Outgoing Dispatch Tracker"])
 
 with tab1:
     st.markdown(f"{theme.tag_custom('Custom intake portal')} {theme.tag_ms('Outlook integration (simulated)')}",
@@ -18,7 +20,8 @@ with tab1:
     with st.form("intake_form"):
         c1, c2 = st.columns(2)
         with c1:
-            direction = st.selectbox("Direction", ["Incoming", "Outgoing"])
+            direction = st.selectbox("Direction", ["Incoming", "Outgoing", "Internal"])
+            kind = st.selectbox("Kind", ["Letter", "Memo", "Email", "Circular", "Telegram / Transaction"])
             channel = st.selectbox("Channel", ["Postal Mail", "Email / Outlook"])
             sender = st.text_input("Sender", placeholder="e.g. Ministry of Public Health")
             recipient = st.text_input("Recipient", placeholder="e.g. Compliance Officer")
@@ -29,6 +32,7 @@ with tab1:
                                            help="Internal / External / Regulatory — per SOW §2.4")
             security_level = st.selectbox("Security Level", db.SECURITY_LEVELS)
             language = st.selectbox("Language", ["English", "Arabic"])
+            copies = st.multiselect("Distribute copies to units", rfp_data.DEPARTMENTS)
         body = st.text_area("Content / Notes (captured text)", height=120,
                              placeholder="Paste or type the letter content — this becomes searchable full text.")
         submitted = st.form_submit_button("Register Correspondence", type="primary")
@@ -41,7 +45,8 @@ with tab1:
             title = auto_name(meta, subject)
             doc_id, code = db.create_document(
                 title=title or subject, department=department, classification=classification,
-                security_level=security_level, doc_type="Correspondence",
+                security_level=security_level,
+                doc_type={"Memo": "Memo", "Circular": "Circular", "Email": "Memo"}.get(kind, "Regulatory Letter" if classification == "Regulatory" else "Letter"),
                 source="Postal" if channel.startswith("Postal") else "Email",
                 language=language, body_text=body or subject,
                 created_by=theme.current_user(), sender=sender, recipient=recipient,
@@ -49,6 +54,13 @@ with tab1:
             db.log_correspondence(doc_id, direction, channel, sender, recipient, subject,
                                    theme.current_user())
             st.session_state["last_intake_doc"] = doc_id
+            for n, p in rfp_data.ROLES.items():
+                if p["dept"] in copies or p["dept"] == department:
+                    db_ext.notify(n, f"New {classification.lower()} {kind.lower()} registered: {code} — {subject}", doc_id, "info")
+            if copies:
+                db.log_audit(doc_id, theme.current_user(), "Copies Distributed", "Copies sent to: " + ", ".join(copies))
+            if direction == "Outgoing":
+                db_ext.create_dispatch(doc_id, classification, kind, recipient, ", ".join(copies), theme.current_user())
             st.success(f"✅ Registered as **{code}** — routed to {department} for review.")
             if meta:
                 st.caption("Auto-extracted metadata: " + ", ".join(f"**{k}**: {v}" for k, v in meta.items()))
@@ -96,3 +108,27 @@ with tab2:
             st.divider()
     else:
         st.info("No correspondence registered yet. Use the form above to log one.")
+
+with tab3:
+    st.markdown('<div class="efs-section-title">Controlled dispatch — approval → release → recipient</div>', unsafe_allow_html=True)
+    st.caption("Outgoing items are tracked through Drafted → Approved → Released → Dispatched, with who approved and "
+               "released each one, by category (internal / external / regulatory).")
+    rows = db_ext.list_dispatch()
+    cats = st.multiselect("Category", ["Internal", "External", "Regulatory"], default=["Internal", "External", "Regulatory"])
+    for x in [r for r in rows if r["category"] in cats]:
+        steps = db_ext.DISPATCH_STEPS
+        idx = steps.index(x["status"])
+        html = '<div class="efs-stepper">' + '<span class="efs-arrow">→</span>'.join(
+            f'<span class="efs-step {"done" if i < idx or x["status"] == "Dispatched" else ("active" if i == idx else "")}">{s_}</span>'
+            for i, s_ in enumerate(steps)) + "</div>"
+        st.markdown(f"""<div class="efs-card"><b>{x['doc_code']} — {x['title']}</b><br>
+        {x['category']} · {x['kind']} → <b>{x['recipient']}</b>{' · cc: ' + x['copies_to'] if x['copies_to'] else ''}<br>
+        <span style="font-size:0.8rem;color:#6B7280">approved by {x['approved_by'] or '—'} · released by {x['released_by'] or '—'} ·
+        dispatched {x['dispatched_at'] or '—'}</span>{html}</div>""", unsafe_allow_html=True)
+        if x["status"] != "Dispatched":
+            nxt = steps[idx + 1]
+            if st.button(f"Mark as {nxt}", key=f"disp_{x['id']}"):
+                db_ext.advance_dispatch(x["id"], theme.current_user())
+                st.rerun()
+    if not rows:
+        st.info("No outgoing items yet — register one with Direction = Outgoing.")
