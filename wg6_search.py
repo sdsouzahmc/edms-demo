@@ -136,7 +136,7 @@ with tabs[0]:
                 with zipfile.ZipFile(buf, "w") as z:
                     for o in res[:50]:
                         d = o["doc"]
-                        z.writestr(f"{d['doc_code']}.txt", f"{d['title']}\n{d['department']} · v{d['current_version']}\n\n{d['body_text'] or ''}")
+                        z.writestr(f"{d['doc_code'].replace('/', '-')}.txt", f"{d['title']}\n{d['department']} · v{d['current_version']}\n\n{d['body_text'] or ''}")
                 st.download_button("🗜 Download results (ZIP)", buf.getvalue(), "search_results.zip")
         with a3:
             save_name = st.text_input("Save query as…", placeholder="e.g. My open Finance approvals", label_visibility="collapsed")

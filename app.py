@@ -39,6 +39,7 @@ pages = [
     st.Page("wg15_roles.py", title="15 · Role Management"),
     st.Page("wg16_assistant.py", title="16 · Ask EDMS"),
     st.Page("wg17_workflow_designer.py", title="17 · Workflow Designer"),
+    st.Page("wg18_numbering.py", title="18 · Numbering Rules"),
 ]
 
 pg = st.navigation(pages, position="hidden")

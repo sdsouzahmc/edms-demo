@@ -383,3 +383,9 @@ AR_MAP.update({"17 · Workflow Designer": "١٧ · مصمّم سير العمل"
 
 AR_MAP.update({"Execution": "طريقة التنفيذ", "Sequential": "تسلسلي", "Parallel with previous": "متوازٍ مع السابق", "When the parallel group finishes": "عند انتهاء المجموعة المتوازية",
     "All must approve": "يجب موافقة الجميع", "Any one approves": "يكفي اعتماد واحد", "Resulting path:": "المسار الناتج:"})
+
+AR_MAP.update({"18 · Numbering Rules": "١٨ · قواعد الترقيم", "Numbering Rules": "قواعد الترقيم", "Dynamic numbering": "ترقيم ديناميكي",
+    "Choose a fixed standard or dynamic rule-based document numbers · per department, type and classification · live preview": "اختر ترقيماً ثابتاً قياسياً أو ديناميكياً حسب القواعد · لكل قسم ونوع وتصنيف · معاينة مباشرة",
+    "Preview": "معاينة", "Rules": "القواعد", "Counters & history": "العدّادات والسجل", "Where this is used": "أين يُستخدم", "Pattern": "النمط", "Counter resets": "إعادة العدّاد", "First number": "الرقم الأول",
+    "Rule is active": "القاعدة مفعّلة", "💾 Save rule": "💾 حفظ القاعدة", "🗑 Delete rule": "🗑 حذف القاعدة", "Yearly": "سنوياً", "Monthly": "شهرياً", "Never": "أبداً", "Description": "الوصف",
+    "🔎 Search the register": "🔎 البحث في السجل", "REFERENCE NUMBER THAT WILL BE ISSUED": "الرقم المرجعي الذي سيُصدر", "Next number": "الرقم التالي"})

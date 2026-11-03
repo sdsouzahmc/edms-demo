@@ -242,7 +242,7 @@ def create_document(title, department, classification, security_level, doc_type,
     conn = get_conn()
     cur = conn.cursor()
     import db_ext
-    code = db_ext.next_code(department, doc_type)
+    code = db_ext.next_code(department, doc_type, classification, security_level)
     ts = now()
     retention_years = RETENTION_SCHEDULES.get(retention_label) if retention_label else None
     effective = dt.date.today().isoformat()

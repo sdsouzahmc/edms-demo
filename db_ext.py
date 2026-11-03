@@ -61,6 +61,8 @@ def init_ext():
     distribution.init_dist()
     import wfdesign
     wfdesign.init()
+    import numbering
+    numbering.init()
     import accounts
     accounts.init_accounts()
     import audit_ext
@@ -68,8 +70,8 @@ def init_ext():
 
 
 # ------------------------------------------------------------- numbering ---
-def next_code(department, doc_type):
-    """Standardised numbering DEPT-TYPE-YYYY-NNNN (SOW 2.2.10.5)."""
+def next_code_fixed(department, doc_type):
+    """Fixed standard DEPT-TYPE-YYYY-NNNN (SOW 2.2.10.5)."""
     d = rfp_data.DEPT_CODE.get(department, "GEN")
     t = rfp_data.TYPE_CODE.get(doc_type, "DOC")
     yr = dt.datetime.now().year
@@ -78,6 +80,14 @@ def next_code(department, doc_type):
     n = conn.execute("SELECT COUNT(*) c FROM documents WHERE doc_code LIKE ?", (pref + "%",)).fetchone()["c"]
     conn.close()
     return f"{pref}{n + 1:04d}"
+
+
+def next_code(department, doc_type, classification=None, security_level=None):
+    """Issue the next document number — fixed standard or rule-based, per the Numbering Rules switch."""
+    import numbering
+    if numbering.mode() == "dynamic":
+        return numbering.next_number(department, doc_type, classification, security_level)[0]
+    return next_code_fixed(department, doc_type)
 
 
 # ------------------------------------------------------ workflow templates --

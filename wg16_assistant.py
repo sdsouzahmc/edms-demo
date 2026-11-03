@@ -115,7 +115,7 @@ def render_results(msg, idx):
             db_ext.toggle_bookmark(user, d["id"])
             st.toast("Bookmark updated")
         c3.download_button("⬇ Text", f"{d['doc_code']}\n{d['title']}\n{d['department']} · v{d['current_version']}\n\n{d['body_text'] or ''}",
-                           f"{d['doc_code']}.txt", key=f"d_{idx}_{n}")
+                           f"{d['doc_code'].replace('/', '-')}.txt", key=f"d_{idx}_{n}")
     extra = len(msg["results"]) - msg.get("shown", 5)
     if extra > 0:
         if st.button(f"Show {min(extra, 5)} more of {extra} remaining", key=f"more_{idx}"):

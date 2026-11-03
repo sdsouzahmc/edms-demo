@@ -201,7 +201,7 @@ with tabs[4]:
         st.success(f"Created v{newv} with redactions permanently applied (original version retained in history).")
         st.rerun()
     dl = (doc["body_text"] or "")
-    st.download_button("🖨 Download / print without annotations", dl.encode("utf-8"), f"{doc['doc_code']}.txt")
+    st.download_button("🖨 Download / print without annotations", dl.encode("utf-8"), f"{doc['doc_code'].replace('/', '-')}.txt")
 
 with tabs[5]:
     user = theme.current_user()

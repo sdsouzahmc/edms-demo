@@ -116,7 +116,7 @@ with tab1:
                          "Chain hash": hashes.get(e["id"])} for e in log])
     d1, d2 = st.columns([1, 3])
     with d1:
-        st.download_button("⬇ Export audit trail (CSV)", out.to_csv(index=False).encode("utf-8-sig"), f"audit_{doc['doc_code']}.csv")
+        st.download_button("⬇ Export audit trail (CSV)", out.to_csv(index=False).encode("utf-8-sig"), f"audit_{doc['doc_code'].replace('/', '-')}.csv")
     with d2:
         st.markdown(
             f'<div style="font-size:.78rem;color:#6B7280;display:flex;gap:6px;align-items:center">{icons.svg("shield", 16, "#2E7D32")} Append-only log — the database rejects updates and deletes. Every event carries a chained hash, so a missing or altered row is detectable.</div>',

@@ -3,6 +3,7 @@ import db
 import distribution as dist
 import db_ext
 import rfp_data
+import numbering
 import theme
 from ocr_utils import extract_metadata, auto_name
 
@@ -18,7 +19,7 @@ with tab1:
     st.markdown(f"{theme.tag_custom('Custom intake portal')} {theme.tag_ms('Outlook integration (simulated)')}",
                 unsafe_allow_html=True)
     st.write("")
-    with st.form("intake_form"):
+    with st.container(border=True, key="intake_form"):
         c1, c2 = st.columns(2)
         with c1:
             direction = st.selectbox("Direction", ["Incoming", "Outgoing", "Internal"])
@@ -37,7 +38,13 @@ with tab1:
         body = st.text_area("Content / Notes (captured text)", height=120,
                              placeholder="Paste or type the letter content — this becomes searchable full text.")
         auto = st.checkbox("📬 Route automatically by content (overrides the department above when a distribution rule matches)", value=True)
-        submitted = st.form_submit_button("Register Correspondence", type="primary")
+        _dtype = {"Memo": "Memo", "Circular": "Circular", "Email": "Memo"}.get(kind, "Regulatory Letter" if classification == "Regulatory" else "Letter")
+        _num, _why = numbering.peek(department, _dtype, classification, security_level)
+        st.markdown(f"""<div class="efs-card" style="display:flex;align-items:center;gap:14px;padding:10px 16px;margin:6px 0">
+        <span style="font-size:1.4rem">🔢</span><div><div style="font-size:.72rem;color:#6B7280">REFERENCE NUMBER THAT WILL BE ISSUED</div>
+        <div style="font-size:1.35rem;font-weight:800;color:#1F3864;letter-spacing:.04em">{_num}</div>
+        <div style="font-size:.72rem;color:#6B7280">{_why}</div></div></div>""", unsafe_allow_html=True)
+        submitted = st.button("Register Correspondence", type="primary")
 
     if submitted:
         if not subject:
@@ -98,8 +105,28 @@ with tab1:
                 st.page_link("wg4_workflow.py", label="→ Continue to Workflow & Approvals")
 
 with tab2:
-    corr = db.get_correspondence()
-    st.markdown(f"**{len(corr)}** correspondence entries logged")
+    corr = db.get_correspondence(limit=1000)
+    conn_ = db.get_conn()
+    dept_of = {r["id"]: r["department"] for r in conn_.execute("SELECT id, department FROM documents").fetchall()}
+    conn_.close()
+    st.markdown('<div class="efs-section-title">🔎 Search the register</div>', unsafe_allow_html=True)
+    f1, f2, f3, f4 = st.columns([2.4, 1, 1.3, 1])
+    q = f1.text_input("Search", placeholder="Reference number (any style, e.g. FIN/2611, REG/2026, MRN-01), subject, sender or recipient",
+                      key="reg_q", label_visibility="collapsed")
+    fdir = f2.selectbox("Direction", ["All", "Incoming", "Outgoing", "Internal"], key="reg_dir")
+    fdep = f3.selectbox("Department", ["All"] + rfp_data.DEPARTMENTS, key="reg_dep")
+    fst = f4.selectbox("Status", ["All"] + sorted({r["status"] for r in corr if r["status"]}), key="reg_st")
+
+    def _norm(x):
+        return "".join(ch for ch in (x or "").lower() if ch.isalnum())
+    terms = [t for t in (q or "").lower().split() if t]
+    def _hit(r):
+        hay = " ".join(str(r[k] or "") for k in ("doc_code", "subject", "sender", "recipient", "channel", "logged_by")).lower()
+        hay_n = _norm(hay)
+        return all(t in hay or _norm(t) in hay_n for t in terms)
+    corr = [r for r in corr if _hit(r) and (fdir == "All" or r["direction"] == fdir) and (fst == "All" or r["status"] == fst)
+            and (fdep == "All" or dept_of.get(r["document_id"]) == fdep)]
+    st.markdown(f"**{len(corr)}** correspondence entries" + (f" matching “{q}”" if q else " logged"))
     if corr:
         for r in corr[:50]:
             c1, c2, c3 = st.columns([0.5, 3, 1])
@@ -107,16 +134,16 @@ with tab2:
                 icon = "📨" if r["direction"] == "Incoming" else "📤"
                 st.markdown(f"<div style='font-size:1.4rem'>{icon}</div>", unsafe_allow_html=True)
             with c2:
-                st.markdown(f"**{r['subject']}** — {r['doc_code']}  \n"
+                st.markdown(f"**{r['subject']}** — `{r['doc_code']}`  \n"
                              f"<span style='color:#6B7280;font-size:0.85rem'>"
                              f"{r['direction']} · {r['channel']} · {r['sender']} → {r['recipient']} · "
-                             f"logged by {r['logged_by']} at {r['logged_at']}</span>",
+                             f"{dept_of.get(r['document_id'], '')} · logged by {r['logged_by']} at {r['logged_at']}</span>",
                              unsafe_allow_html=True)
             with c3:
                 st.markdown(theme.pill(r["status"]), unsafe_allow_html=True)
             st.divider()
     else:
-        st.info("No correspondence registered yet. Use the form above to log one.")
+        st.info("No correspondence matches." if (q or fdir != "All" or fdep != "All" or fst != "All") else "No correspondence registered yet. Use the form above to log one.")
 
 with tab3:
     st.markdown('<div class="efs-section-title">Controlled dispatch — approval → release → recipient</div>', unsafe_allow_html=True)
