@@ -1,0 +1,8 @@
+streamlit>=1.38
+pandas
+pillow
+pytesseract
+qrcode[pil]
+plotly
+pymupdf
+python-dateutil
