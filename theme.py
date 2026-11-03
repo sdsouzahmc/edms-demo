@@ -120,9 +120,16 @@ def inject_css():
         .efs-card {{ padding: 12px 12px; overflow-wrap: anywhere; }}
         .efs-step {{ font-size: 0.7rem; padding: 4px 8px; }}
         .stButton button {{ width: 100%; min-height: 44px; }}
-        div[data-testid="stHorizontalBlock"] {{ gap: 0.5rem; }}
-        .stTabs [role="tablist"] {{ overflow-x: auto; }}
+        div[data-testid="stHorizontalBlock"] {{ gap: 0.6rem; flex-wrap: wrap !important; }}
+        div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {{
+            min-width: 100% !important; flex: 1 1 100% !important; }}
+        div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"]:nth-child(4)) > div[data-testid="stColumn"] {{
+            min-width: calc(50% - 0.6rem) !important; flex: 1 1 calc(50% - 0.6rem) !important; }}
+        .efs-metric {{ padding: 8px 12px; margin-bottom: 0.4rem; }}
+        .stTabs [data-baseweb="tab-list"], .stTabs [role="tablist"] {{ overflow-x: auto; }}
     }}
+    .st-key-mobilenav {{ display: none; }}
+    @media (max-width: 768px) {{ .st-key-mobilenav {{ display: block; }} }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -203,3 +210,15 @@ def sidebar_nav():
             st.rerun()
         prof = ROLES[choice]
         st.caption(f"{prof['role']} · {prof['dept']}")
+    # mobile-only quick menu (sidebar is collapsed on phones)
+    with st.container(key="mobilenav"):
+        with st.expander("☰ Menu · pages & switch user"):
+            for k, label in [("home", "🏠 Home"), ("1", "1 · Correspondence & Intake"), ("2", "2 · OCR & Capture"),
+                              ("3", "3 · Document Control"), ("4", "4 · Workflow & Approvals"),
+                              ("5", "5 · Security"), ("6", "6 · Search"), ("7", "7 · Audit & Reporting"),
+                              ("8", "8 · Records & Disposal")]:
+                st.page_link(PAGE_FILES[k], label=label)
+            m_choice = st.selectbox("Viewing as", names, index=names.index(choice), key="m_user")
+            if m_choice != choice:
+                st.session_state[CURRENT_USER_KEY] = m_choice
+                st.rerun()
