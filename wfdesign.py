@@ -207,3 +207,49 @@ def svg(steps, selected=None, active=None, per_row=4):
     out.append(f'<text x="{PAD}" y="{height - 6}" fill="#B00020" font-size="11">↩ A rejection at any approval stage returns the document to the author (status “Rejected”).</text>')
     out.append("</svg>")
     return "".join(out)
+
+
+# ------------------------------------------------------------ sample designs --
+SAMPLES = [  # dept, doc_type, name, note, steps: (kind, name, assignee, sla, esign, cond, cval)
+    ("Finance", "Invoice", "Supplier invoice approval", "Three-way check, approval, finance sign-off",
+     [("Review", "Department Review", "(owner department)", 24, False, "Always", ""), ("Approval", "Approval", "(owner department)", 24, True, "Always", ""),
+      ("Sign-off", "Finance Sign-off", "Finance", 48, True, "Always", "")]),
+    ("Procurement", "Purchase Order", "Purchase order with budget control", "Finance sign-off added automatically for POs",
+     [("Review", "Department Review", "(owner department)", 24, False, "Always", ""), ("Approval", "Approval", "(owner department)", 24, True, "Always", ""),
+      ("Sign-off", "Finance Sign-off", "Finance", 48, True, "Document type is finance-related", "")]),
+    ("Legal", "Vendor Agreement", "Contract legal review", "Legal and quality checks, executive approval if confidential",
+     [("Legal", "Legal Review", "Legal", 48, False, "Always", ""), ("Quality", "Quality Review", "QRI", 48, False, "Always", ""),
+      ("Executive", "Executive Approval", "Executive Offices", 72, True, "Security level at least", "Confidential"),
+      ("Approval", "Approval", "(owner department)", 24, True, "Always", "")]),
+    ("HR", "Employee Contract", "Employment contract", "HR review, legal review for external, head of HR signature",
+     [("Review", "Department Review", "(owner department)", 24, False, "Always", ""), ("Legal", "Legal Review", "Legal", 48, False, "Classification is", "External"),
+      ("Approval", "Approval", "(owner department)", 24, True, "Always", "")]),
+    ("Medical Records", "Medical Record", "Patient record release", "Clinical review then medical records approval; confidential adds executive sign-off",
+     [("Clinical", "Clinical Review", "Clinical Operations", 12, False, "Always", ""), ("Approval", "Approval", "(owner department)", 12, True, "Always", ""),
+      ("Executive", "Executive Approval", "Executive Offices", 48, True, "Security level at least", "Confidential")]),
+    ("Research", "Research Protocol", "Research protocol & ethics", "Quality and legal review before executive approval",
+     [("Review", "Department Review", "(owner department)", 48, False, "Always", ""), ("Quality", "Quality Review", "QRI", 72, False, "Always", ""),
+      ("Legal", "Legal Review", "Legal", 72, False, "Always", ""), ("Executive", "Executive Approval", "Executive Offices", 72, True, "Always", "")]),
+    ("IT", "System Configuration", "Change approval (CAB)", "Security review and approval for production changes",
+     [("Review", "Department Review", "(owner department)", 8, False, "Always", ""), ("Review", "Security Review", "Security", 24, False, "Always", ""),
+      ("Approval", "Approval", "(owner department)", 24, True, "Always", "")]),
+    ("Clinical Operations", "SOP", "Clinical SOP publication", "Clinical and quality review, acknowledgment by staff",
+     [("Clinical", "Clinical Review", "(owner department)", 48, False, "Always", ""), ("Quality", "Quality Review", "QRI", 48, False, "Always", ""),
+      ("Approval", "Approval", "(owner department)", 24, True, "Always", ""), ("Acknowledge", "Acknowledgment", "Nursing", 72, False, "Always", "")]),
+    ("Marketing", "Campaign Document", "Marketing material approval", "Fast-track with executive approval for external material",
+     [("Approval", "Approval", "(owner department)", 12, True, "Always", ""), ("Executive", "Executive Approval", "Executive Offices", 48, True, "Classification is", "External")]),
+]
+
+
+def seed_samples():
+    conn = db.get_conn()
+    n = conn.execute("SELECT COUNT(*) FROM workflow_designs").fetchone()[0]
+    conn.close()
+    if n:
+        return
+    for dept, dtype, name, note, st_ in SAMPLES:
+        steps = []
+        for kind, sname, assignee, sla, esign, cond, cval in st_:
+            s = new_step(kind, sname, sla, esign, cond, cval, assignee)
+            steps.append(s)
+        save(dept, dtype, name, steps, "Yusuf Al-Marri", True, note)

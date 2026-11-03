@@ -154,8 +154,9 @@ with tabs[2]:
 
 with tabs[3]:
     rows = wd.all_published()
-    st.markdown(f"**{len(rows)}** visual design(s) are live.")
+    st.markdown(f"**{len(rows)}** visual design(s) are live. Open one to see the flow; use the department / document type selectors above to edit it.")
     for r in rows:
         ss = json.loads(r["steps"])
-        st.markdown(f"- **{r['department']}** · {r['doc_type'] or 'department default'} · v{r['version']} → " + " → ".join(s["name"] for s in ss)
-                    + f"  <span style='color:#6B7280;font-size:.8rem'>({r['updated_by']})</span>", unsafe_allow_html=True)
+        with st.expander(f"🟢 {r['department']} · {r['doc_type'] or 'department default'} — {r['name']} (v{r['version']}) · {len(ss)} steps"):
+            st.caption(f"{r['note'] or ''}  ·  published by {r['updated_by']} · {r['updated_at'][:16]}")
+            st.markdown(wd.svg(ss, per_row=5), unsafe_allow_html=True)

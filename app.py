@@ -16,6 +16,8 @@ os.makedirs(db.DB_DIR, exist_ok=True)
 db.init_db()
 db_ext.init_ext()
 db.ensure_seeded()
+import wfdesign
+wfdesign.seed_samples()
 open(_marker, 'w').write('rfp2')
 
 pages = [
