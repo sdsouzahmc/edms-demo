@@ -281,6 +281,11 @@ def create_document(title, department, classification, security_level, doc_type,
         """, (doc_id, stage, i, status, assignee, sla, esg, gi, jr))
     conn.commit()
     conn.close()
+    try:
+        import folders
+        folders.autofile(doc_id)
+    except Exception:
+        pass
     log_audit(doc_id, created_by, "Created", f"{code} — {title}")
     return doc_id, code
 

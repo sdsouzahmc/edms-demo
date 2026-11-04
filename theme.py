@@ -251,14 +251,14 @@ PAGE_FILES = {
     "home": "home_view.py", "1": "wg1_correspondence.py", "2": "wg2_ocr.py", "3": "wg3_document_control.py",
     "4": "wg4_workflow.py", "5": "wg5_security.py", "6": "wg6_search.py", "7": "wg7_audit.py",
     "8": "wg8_records.py", "9": "wg9_workspace.py", "10": "wg10_admin.py", "11": "wg11_coverage.py", "12": "wg12_distribution.py",
-    "13": "wg13_analytics.py", "14": "wg14_users.py", "15": "wg15_roles.py", "16": "wg16_assistant.py", "17": "wg17_workflow_designer.py", "18": "wg18_numbering.py", "19": "wg19_delegation.py", "20": "wg20_exchange.py",
+    "13": "wg13_analytics.py", "14": "wg14_users.py", "15": "wg15_roles.py", "16": "wg16_assistant.py", "17": "wg17_workflow_designer.py", "18": "wg18_numbering.py", "19": "wg19_delegation.py", "20": "wg20_exchange.py", "21": "wg21_folders.py", "22": "wg22_migration.py",
 }
 NAV = [("home", "Home / Lifecycle Story"), ("1", "1 · Correspondence & Intake"), ("2", "2 · OCR & Intelligent Capture"),
        ("3", "3 · Document Control & Versioning"), ("4", "4 · Workflow & Approvals"), ("5", "5 · Security & Compliance"),
        ("6", "6 · Search & Retrieval"), ("7", "7 · Audit, Governance & Reporting"), ("8", "8 · Records, Archiving & Disposal"),
        ("9", "9 · My Workspace"), ("10", "10 · Administration & Integrations"), ("11", "11 · RFP Coverage"), ("12", "12 · Auto-Distribution"),
        ("13", "13 · Analytics & Insights"),
-       ("14", "14 · User Management"), ("15", "15 · Role Management"), ("16", "16 · Ask EDMS — Search Assistant"), ("17", "17 · Workflow Designer"), ("18", "18 · Numbering Rules"), ("19", "19 · Approval Delegation"), ("20", "20 · Secure Exchange")]
+       ("14", "14 · User Management"), ("15", "15 · Role Management"), ("16", "16 · Ask EDMS — Search Assistant"), ("17", "17 · Workflow Designer"), ("18", "18 · Numbering Rules"), ("19", "19 · Approval Delegation"), ("20", "20 · Secure Exchange"), ("21", "21 · Folders & Classification"), ("22", "22 · Data Migration")]
 
 
 def _label(label):

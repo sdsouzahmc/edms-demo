@@ -67,6 +67,10 @@ def init_ext():
     delegation.init()
     import exchange
     exchange.init()
+    import folders
+    folders.init()
+    import migration
+    migration.init()
     import letter_templates
     letter_templates.init()
     import accounts

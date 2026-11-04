@@ -27,6 +27,12 @@ if _x:
     external_portal.render(_x)
     st.stop()
 
+_v = st.query_params.get("v")
+if _v:
+    import external_portal
+    external_portal.render_verify(_v)
+    st.stop()
+
 pages = [
     st.Page("home_view.py", title="Home", icon="🏠", default=True),
     st.Page("wg1_correspondence.py", title="1 · Correspondence & Intake"),
@@ -49,6 +55,8 @@ pages = [
     st.Page("wg18_numbering.py", title="18 · Numbering Rules"),
     st.Page("wg19_delegation.py", title="19 · Approval Delegation"),
     st.Page("wg20_exchange.py", title="20 · Secure Exchange"),
+    st.Page("wg21_folders.py", title="21 · Folders & Classification"),
+    st.Page("wg22_migration.py", title="22 · Data Migration"),
 ]
 
 pg = st.navigation(pages, position="hidden")

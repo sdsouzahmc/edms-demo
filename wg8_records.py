@@ -139,7 +139,8 @@ with tab4:
         dmap = {f"{d['doc_code']} — {d['title']}": d for d in released}
         pick = st.selectbox("Select a released document", list(dmap.keys()))
         target = dmap[pick]
-        qr_payload = f"EDMS-VERIFY:{target['doc_code']}:{target['qr_token']}"
+        import exchange
+        qr_payload = exchange.verify_url(target["qr_token"])
         img = qrcode.make(qr_payload)
         buf = io.BytesIO()
         img.save(buf, format="PNG")
@@ -152,7 +153,9 @@ with tab4:
             <b>{target['title']}</b><br>
             Document: {target['doc_code']} &nbsp;·&nbsp; Version: v{target['current_version']}<br>
             Released: {target['released_at']}<br>
-            Verification token: <code>{target['qr_token']}</code>
+            Verification token: <code>{target['qr_token']}</code><br>
+            Public check address: <code>{qr_payload}</code><br>
+            Times scanned by the public: <b>{exchange.verify_stats(target['id'])}</b>
             </div>
             """, unsafe_allow_html=True)
         st.markdown("---")

@@ -50,6 +50,7 @@ def init():
     CREATE TABLE IF NOT EXISTS share_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT, link_id INTEGER, ts TEXT, event TEXT, detail TEXT
     );
+    CREATE TABLE IF NOT EXISTS verify_log (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, token TEXT, document_id INTEGER, result TEXT);
     CREATE TABLE IF NOT EXISTS transmittals (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         batch TEXT, seq INTEGER DEFAULT 0, mode TEXT,
@@ -243,6 +244,11 @@ def controlled_copy(doc_id, l):
             for ln in lines[i:i + per]:
                 pg.insert_text((50, y), ln, fontsize=9.5, fontname="helv")
                 y += 12
+    if d["qr_token"] and len(pdf):
+        pg0 = pdf[0]
+        r0 = pg0.rect
+        pg0.insert_image(fitz.Rect(r0.width - 96, r0.height - 118, r0.width - 20, r0.height - 42), stream=qr_png(verify_url(d["qr_token"])))
+        pg0.insert_text((r0.width - 118, r0.height - 30), "Scan to verify true copy", fontsize=6.5, color=(0.2, 0.2, 0.2))
     if l["watermark"]:
         for pg in pdf:
             r = pg.rect
@@ -429,3 +435,50 @@ def batch_summary(batch):
     rows = [dict(r) for r in conn.execute("SELECT * FROM transmittals WHERE batch=? ORDER BY seq", (batch,)).fetchall()]
     conn.close()
     return rows
+
+
+# ----------------------------------------------------------- QR verification --
+def verify_url(qr_token):
+    return f"{base_url()}/?v={qr_token}"
+
+
+def verify(token):
+    """Public true-copy check. Returns dict(result=authentic|superseded|not_current|unknown, doc=row|None)."""
+    token = (token or "").strip()
+    d = db.find_by_qr(token) if 6 <= len(token) <= 40 else None
+    if not d:
+        res, doc = "unknown", None
+    else:
+        conn = _c()
+        newer = conn.execute("SELECT version_no, status FROM versions WHERE document_id=? ORDER BY id DESC LIMIT 1", (d["id"],)).fetchone()
+        conn.close()
+        if d["status"] in ("Archived", "Disposed", "Deleted", "Rejected"):
+            res = "not_current"
+        elif newer and newer["status"] == "Obsolete":
+            res = "superseded"
+        elif d["status"] == "Released" and d["is_published"]:
+            res = "authentic"
+        else:
+            res = "not_current"
+        doc = dict(d)
+    conn = _c()
+    conn.execute("INSERT INTO verify_log (ts, token, document_id, result) VALUES (?,?,?,?)", (_now(), token[:40], doc["id"] if doc else None, res))
+    conn.commit()
+    conn.close()
+    db.log_audit(doc["id"] if doc else None, "Public (QR scan)", "QR Verification", f"result: {res}", "Success" if res == "authentic" else "Warning")
+    return {"result": res, "doc": doc}
+
+
+def verify_stats(doc_id=None):
+    conn = _c()
+    q = "SELECT COUNT(*) FROM verify_log" + (" WHERE document_id=?" if doc_id else "")
+    n = conn.execute(q, (doc_id,) if doc_id else ()).fetchone()[0]
+    conn.close()
+    return n
+
+
+def qr_png(text, box=4):
+    import qrcode
+    buf = io.BytesIO()
+    qrcode.make(text, box_size=box, border=1).save(buf, format="PNG")
+    return buf.getvalue()

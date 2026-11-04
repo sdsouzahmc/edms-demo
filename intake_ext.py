@@ -105,7 +105,7 @@ def get_file(fid):
     return r
 
 
-def register_file(name, data, user, origin, direction="Incoming", auto_route=True, dept=None):
+def register_file(name, data, user, origin, direction="Incoming", auto_route=True, dept=None, doc_type=None):
     """Extract text, name, classify, route and register one file as incoming correspondence. Returns a result dict."""
     sha = hashlib.sha256(data).hexdigest()
     dup = already_imported(sha)
@@ -120,7 +120,7 @@ def register_file(name, data, user, origin, direction="Incoming", auto_route=Tru
     dec = dist.analyse(text, title, meta.get("Sender", "")) if text else {"primary": None, "classification": None, "doc_type": None, "hits": [], "copies": []}
     department = (dec["primary"] if auto_route and dec["primary"] else None) or dept or "Medical Records"
     arabic = any("؀" <= ch <= "ۿ" for ch in text)
-    doc_id, code = db.create_document(title, department, dec["classification"] or "External", "Internal", dec["doc_type"] or "Letter",
+    doc_id, code = db.create_document(title, department, dec["classification"] or "External", "Internal", doc_type or dec["doc_type"] or "Letter",
                                       "Scan" if name.lower().endswith((".png", ".jpg", ".jpeg", ".pdf")) else "Upload",
                                       "Arabic" if arabic else "English", text or f"[{name}] — no text could be extracted", user, sender=meta.get("Sender", ""))
     db.log_correspondence(doc_id, direction, f"{origin}", meta.get("Sender", ""), "", meta.get("Subject", title), user)

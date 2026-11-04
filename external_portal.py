@@ -142,3 +142,32 @@ def _upload_view(l):
         res = [ex.receive_upload(l, f.name, f.getvalue(), nm.strip(), org.strip(), note.strip()) for f in files]
         st.session_state[f"x_up_{l['id']}"] = res
         st.rerun()
+
+
+def render_verify(token):
+    theme.inject_css()
+    st.markdown("""<style>
+    [data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"], [data-testid="stExpandSidebarButton"] {display:none !important}
+    .block-container {max-width: 640px; padding-top: 1.2rem}
+    </style>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="xp-head" style="background:linear-gradient(120deg,#1F3864,#2E8B8B);color:#fff;border-radius:16px;padding:18px 22px;margin-bottom:16px">
+    <h2 style="margin:0;color:#fff;font-size:1.3rem">🔎 {theme.tr('Document Verification')}</h2>
+    <div style="opacity:.85;font-size:.85rem">{theme.tr('Check that a printed copy is a genuine, current document')}</div></div>""", unsafe_allow_html=True)
+    r = ex.verify(token)
+    d = r["doc"]
+    cfg = {"authentic": ("#2E7D32", "✅", "Genuine and current", "This document is an authentic released copy."),
+           "superseded": ("#B8860B", "⚠️", "Genuine but SUPERSEDED", "A newer version exists. Do not rely on this copy — ask the issuing department for the current version."),
+           "not_current": ("#B8860B", "⚠️", "Genuine but NOT current", "This document is not in force (archived, withdrawn or not released). Do not rely on it."),
+           "unknown": ("#B00020", "❌", "NOT RECOGNISED", "This code does not match any document in our records. The copy may be forged or altered — please report it.")}[r["result"]]
+    col, ic, head, body = cfg
+    st.markdown(f"""<div style="background:#fff;border:2px solid {col};border-radius:16px;padding:22px;text-align:center">
+    <div style="font-size:3rem">{ic}</div><h2 style="color:{col};margin:.2rem 0">{theme.tr(head)}</h2>
+    <div style="color:#374151">{theme.tr(body)}</div></div>""", unsafe_allow_html=True)
+    if d:
+        sensitive = d["classification"] in ("Confidential", "Restricted")
+        rows = [(theme.tr("Reference"), d["doc_code"]), (theme.tr("Title"), theme.tr("Withheld (classified)") if sensitive else d["title"]),
+                (theme.tr("Issuing department"), d["department"]), (theme.tr("Version"), f"v{d['current_version']}"),
+                (theme.tr("Released on"), (d["released_at"] or "")[:10] or "—"), (theme.tr("Status"), d["status"])]
+        st.markdown("<div class='xp-card'>" + "".join(f"<div style='display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #EEF1F5'>"
+                    f"<span style='color:#6B7280'>{k}</span><b>{v}</b></div>" for k, v in rows) + "</div>", unsafe_allow_html=True)
+    st.caption(theme.tr("This check is logged. No document content is shown here."))
