@@ -77,6 +77,7 @@ ROWS = [
 ]
 
 df = pd.DataFrame(ROWS, columns=["RFP ref", "Requirement group", "M/O", "Proposal key", "Where in demo", "Demo status"])
+df["Where in demo"] = df["Where in demo"].str.replace(r"\b\d{1,2} · ", "", regex=True)
 n = len(df)
 c1, c2, c3, c4 = st.columns(4)
 theme.metric_card("Requirement groups", n, c1)

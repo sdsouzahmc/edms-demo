@@ -498,3 +498,6 @@ AR_MAP.update({
     "Reference": "المرجع", "Issuing department": "الإدارة المصدِرة", "Version": "الإصدار", "Released on": "تاريخ الإصدار", "Withheld (classified)": "محجوب (مصنّف)",
     "This check is logged. No document content is shown here.": "هذا الفحص مسجّل. لا يُعرض محتوى المستند هنا.",
 })
+
+AR_MAP.update({"Capture & Intake": "الالتقاط والاستلام", "Organise & Control": "التنظيم والضبط", "Process & Approve": "المعالجة والاعتماد",
+               "Share & Collaborate": "المشاركة والتعاون", "Find & Ask": "البحث والاستعلام", "Retain & Govern": "الحفظ والحوكمة", "Administer": "الإدارة"})

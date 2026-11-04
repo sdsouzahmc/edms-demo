@@ -1,4 +1,5 @@
 """Shared design tokens, CSS injection, and small UI helpers for the EDMS demo."""
+import re
 import streamlit as st
 import i18n
 i18n.install()
@@ -223,7 +224,7 @@ def topbar(title: str, subtitle: str = ""):
     <div class="efs-topbar">
         <div style="display:flex;gap:14px;align-items:center">
             <span class="efs-topicon">{ic}</span>
-            <div><h1>{tr(title)}</h1><div class="sub">{tr(subtitle)}</div></div>
+            <div><h1>{strip_no(tr(title))}</h1><div class="sub">{tr(subtitle)}</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end"><div class="efs-nbs">{chips}</div>
         <div class="efs-badge" style="display:flex;align-items:center;gap:10px;padding:6px 14px 6px 8px">{icons.avatar(current_user(), 34, "#2E8B8B")}<div style="line-height:1.2"><div style="font-weight:700;font-size:.9rem">{current_user()}</div><div style="opacity:.85">{prof['role']} · {prof['dept']}</div></div></div></div>
@@ -261,10 +262,33 @@ NAV = [("home", "Home / Lifecycle Story"), ("1", "1 · Correspondence & Intake")
        ("14", "14 · User Management"), ("15", "15 · Role Management"), ("16", "16 · Ask EDMS — Search Assistant"), ("17", "17 · Workflow Designer"), ("18", "18 · Numbering Rules"), ("19", "19 · Approval Delegation"), ("20", "20 · Secure Exchange"), ("21", "21 · Folders & Classification"), ("22", "22 · Data Migration")]
 
 
+# Menu grouped along the end-to-end document journey (page keys stay stable; numbers are no longer shown)
+GROUPS = [
+    ("Capture & Intake", "📥", "#2E8B8B", ["1", "2", "12", "22"]),
+    ("Organise & Control", "🗂️", "#6C4FA3", ["21", "3", "18"]),
+    ("Process & Approve", "🔀", "#B8860B", ["4", "17", "19"]),
+    ("Share & Collaborate", "🤝", "#C0603C", ["20", "9"]),
+    ("Find & Ask", "🔎", "#4A90C2", ["6", "16"]),
+    ("Retain & Govern", "🗄️", "#2E7D32", ["8", "5", "7", "13"]),
+    ("Administer", "⚙️", "#6B7280", ["14", "15", "10", "11"]),
+]
+_NUM = re.compile(r"^[0-9\u0660-\u0669]+\s*[\u00b7.]\s*")
+
+
+def strip_no(s):
+    return _NUM.sub("", s)
+
+
 def _label(label):
     emoji = label.split(" ")[0] if label[0] in "🏠" else ""
     core = label.replace("🏠 ", "")
-    return (emoji + " " if emoji else "") + tr(core)
+    return (emoji + " " if emoji else "") + strip_no(tr(core))
+
+
+def _group_header(i, name, em, col):
+    return (f'<div style="margin:12px 0 2px 2px;display:flex;align-items:center;gap:7px;font-size:.68rem;font-weight:800;letter-spacing:.06em;'
+            f'text-transform:uppercase;color:{col}"><span style="background:{col};color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;'
+            f'align-items:center;justify-content:center;font-size:.66rem">{i}</span>{em} {tr(name)}<span style="flex:1;height:1px;background:{col}44"></span></div>')
 
 
 def _on_lang(key):
@@ -399,11 +423,18 @@ def sidebar_nav():
             st.session_state["global_q"] = qs.strip()
             st.switch_page(PAGE_FILES["6"])
         with st.container(key="navmenu"):
-            for k, label in NAV:
-                if k in allowed:
+            _lbl = dict(NAV)
+            with st.container(key="nav_home"):
+                st.page_link(PAGE_FILES["home"], label=_label(_lbl["home"]), icon=accounts.MODULES["home"][1])
+            for gi, (gname, gem, gcol, gkeys) in enumerate(GROUPS, start=1):
+                vis = [k for k in gkeys if k in allowed]
+                if not vis:
+                    continue
+                st.markdown(_group_header(gi, gname, gem, gcol), unsafe_allow_html=True)
+                for k in vis:
                     with st.container(key=f"nav_{k}"):
                         n = _bc.get(badges.MENU.get(k, ""), 0) if k in badges.MENU else 0
-                        st.page_link(PAGE_FILES[k], label=_label(label) + (f"  🔴 {n}" if n else ""), icon=accounts.MODULES[k][1])
+                        st.page_link(PAGE_FILES[k], label=_label(_lbl[k]) + (f"  🔴 {n}" if n else ""), icon=accounts.MODULES[k][1])
         st.divider()
         try:
             import db_ext
@@ -416,9 +447,14 @@ def sidebar_nav():
     with st.container(key="mobilenav"):
         with st.expander("☰ Menu · pages & account"):
             _lang_switch("lang_radio_m")
-            for k, label in NAV:
-                if k in allowed:
-                    st.page_link(PAGE_FILES[k], label=_label(label), icon=accounts.MODULES[k][1])
+            _lbl = dict(NAV)
+            st.page_link(PAGE_FILES["home"], label=_label(_lbl["home"]), icon=accounts.MODULES["home"][1])
+            for gi, (gname, gem, gcol, gkeys) in enumerate(GROUPS, start=1):
+                vis = [k for k in gkeys if k in allowed]
+                if vis:
+                    st.caption(f"{gi} · {gem} {tr(gname)}")
+                    for k in vis:
+                        st.page_link(PAGE_FILES[k], label=_label(_lbl[k]), icon=accounts.MODULES[k][1])
             st.caption(f"{current} · {prof['role']}")
             if st.button("⎋ Sign out", key="logout_m"):
                 logout()
