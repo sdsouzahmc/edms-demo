@@ -20,6 +20,9 @@ import wfdesign
 wfdesign.seed_samples()
 open(_marker, 'w').write('rfp2')
 
+import demo_journey
+demo_journey.auto_load()   # sample documents + their movement are present from the first visit
+
 # public secure-exchange portal: opened from an emailed link, no EDMS login
 _x = st.query_params.get("x")
 if _x:

@@ -13,6 +13,8 @@ warnings.filterwarnings("ignore")
 import streamlit as st
 import theme
 st.page_link = lambda *a, **k: None
+from streamlit.delta_generator import DeltaGenerator
+DeltaGenerator.page_link = lambda *a, **k: None
 from streamlit.testing.v1 import AppTest
 import db, db_ext, wfdesign, rfp_data
 import demo_journey as dj

@@ -230,6 +230,29 @@ def topbar(title: str, subtitle: str = ""):
         <div class="efs-badge" style="display:flex;align-items:center;gap:10px;padding:6px 14px 6px 8px">{icons.avatar(current_user(), 34, "#2E8B8B")}<div style="line-height:1.2"><div style="font-weight:700;font-size:.9rem">{current_user()}</div><div style="opacity:.85">{prof['role']} · {prof['dept']}</div></div></div></div>
     </div>
     """, unsafe_allow_html=True)
+    breadcrumb(key)
+
+
+def breadcrumb(key):
+    """Home › Journey group › Page — Home and the group are clickable so the user can step back."""
+    if key == "home" or key not in PAGE_FILES:
+        return
+    grp = next((g for g in GROUPS if key in g[3]), None)
+    page = strip_no(tr(dict(NAV).get(key, key)))
+    st.markdown("""<style>.st-key-efs_bc{margin:-6px 0 10px 0}.st-key-efs_bc a,.st-key-efs_bc p{font-size:.82rem!important;margin:0!important;white-space:nowrap}
+    .st-key-efs_bc [data-testid=stPageLink] a{padding:2px 8px;border-radius:14px;background:#EEF3F8;color:#1F3864}
+    .st-key-efs_bc [data-testid=stPageLink] a:hover{background:#DCE7F3}.efs-bc-sep{color:#9CA3AF;padding-top:3px}
+    .efs-bc-cur{font-weight:700;color:#1F3864;padding:2px 8px}</style>""", unsafe_allow_html=True)
+    with st.container(key="efs_bc"):
+        cols = st.columns([.9, .1, 1.9, .1, 3, 7]) if grp else st.columns([.9, .1, 3, 9])
+        cols[0].page_link(PAGE_FILES["home"], label=tr("Home"), icon="🏠")
+        i = 1
+        if grp:
+            cols[1].markdown("<div class='efs-bc-sep'>›</div>", unsafe_allow_html=True)
+            cols[2].page_link(PAGE_FILES[grp[3][0]], label=tr(grp[0]), icon=grp[1])
+            i = 3
+        cols[i].markdown("<div class='efs-bc-sep'>›</div>", unsafe_allow_html=True)
+        cols[i + 1].markdown(f"<div class='efs-bc-cur'>{page}</div>", unsafe_allow_html=True)
 
 
 def userbar():

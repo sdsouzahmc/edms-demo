@@ -167,3 +167,15 @@ def run(user="Yusuf Al-Marri", move=True, progress=None):
     conn.close()
     db.log_audit(None, user, "Demo Journey Loaded", f"{len(results)} files through intake; {len(log)} movements")
     return results, log
+
+
+def auto_load(user="Yusuf Al-Marri"):
+    """Load the sample pack + movement once, automatically, so a fresh deployment is never empty."""
+    conn = db.get_conn()
+    done = conn.execute("SELECT value FROM settings WHERE key='journey_done'").fetchone()
+    conn.close()
+    if not done:
+        try:
+            run(user)
+        except Exception:
+            pass
