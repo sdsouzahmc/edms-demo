@@ -71,6 +71,8 @@ def init_ext():
     folders.init()
     import migration
     migration.init()
+    import signing
+    signing.init()
     import letter_templates
     letter_templates.init()
     import accounts

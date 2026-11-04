@@ -45,10 +45,22 @@ with tab1:
             {('<br><span style="color:#1F6F78;font-weight:700">🏖 On behalf of ' + w['on_behalf_of'] + ' (delegation)</span>') if w.get('on_behalf_of') else ''}
             </div>
             """, unsafe_allow_html=True)
-            cc1, cc2, cc3, cc4 = st.columns([1, 1, 1.4, 1.4])
+            import signing
+            _sp = signing.ensure(theme.current_user())
+            p1, p2 = st.columns([1.2, 2])
+            pin = p1.text_input("Signature PIN", type="password", key=f"pin_{w['id']}", placeholder="Signature PIN", max_chars=12,
+                                label_visibility="collapsed")
+            p2.caption(f"✍ Approving applies your **e-signature** (image) and a **digital signature** (certificate …{_sp['serial'][-6:]}). "
+                       + ("Demo PIN: 1234 — change it on My Signature." if _sp["is_demo"] else "Enter your signature PIN."))
+            cc1, cc2, cc3, cc4 = st.columns([1.2, 1, 1.4, 1.4])
             with cc1:
-                if st.button("✅ Approve", key=f"appr_{w['id']}", type="primary"):
-                    sig = db_ext.log_esign(w["document_id"], theme.current_user(), w["stage"])
+                if st.button("✍ Sign & Approve", key=f"appr_{w['id']}", type="primary"):
+                    _ob = w.get("on_behalf_of") if w.get("on_behalf_of") in theme.ROLES else None
+                    ok_, res_ = signing.sign(w["document_id"], theme.current_user(), w["stage"], pin, "Approved", _ob)
+                    if not ok_:
+                        st.error(res_)
+                        st.stop()
+                    sig = res_["short"]
                     db.advance_workflow(w["document_id"], "approve", theme.current_user(),
                                          f"Approved via e-signature {sig}" + (f" — on behalf of {w['on_behalf_of']}" if w.get("on_behalf_of") else ""), workflow_id=w["id"])
                     if w.get("on_behalf_of"):
@@ -56,7 +68,7 @@ with tab1:
                     nxt = db.get_document(w["document_id"])
                     for sub in set(db_ext.subscribers_of(w["document_id"], nxt["classification"])):
                         db_ext.notify(sub, f"{nxt['doc_code']} moved to {nxt['status']}.", w["document_id"], "approval")
-                    st.toast(f"E-signature applied: {sig}")
+                    st.toast(f"Signed & approved · e-signature {sig}")
                     st.rerun()
             with cc2:
                 if st.button("❌ Reject", key=f"rej_{w['id']}"):

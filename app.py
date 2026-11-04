@@ -57,6 +57,7 @@ pages = [
     st.Page("wg20_exchange.py", title="20 · Secure Exchange"),
     st.Page("wg21_folders.py", title="21 · Folders & Classification"),
     st.Page("wg22_migration.py", title="22 · Data Migration"),
+    st.Page("wg23_signature.py", title="23 · My Signature & Certificate"),
 ]
 
 pg = st.navigation(pages, position="hidden")

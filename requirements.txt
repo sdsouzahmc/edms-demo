@@ -8,3 +8,5 @@ pymupdf
 python-dateutil
 
 python-docx
+
+cryptography

@@ -501,3 +501,17 @@ AR_MAP.update({
 
 AR_MAP.update({"Capture & Intake": "الالتقاط والاستلام", "Organise & Control": "التنظيم والضبط", "Process & Approve": "المعالجة والاعتماد",
                "Share & Collaborate": "المشاركة والتعاون", "Find & Ask": "البحث والاستعلام", "Retain & Govern": "الحفظ والحوكمة", "Administer": "الإدارة"})
+
+AR_MAP.update({
+    "23 · My Signature & Certificate": "٢٣ · توقيعي وشهادتي", "My Signature & Certificate": "توقيعي وشهادتي",
+    "Upload your handwritten signature · PIN-protected e-signature · digital certificate · verify signed documents": "ارفع توقيعك المكتوب بخط اليد · توقيع إلكتروني محمي برمز · شهادة رقمية · التحقق من المستندات الموقّعة",
+    "E-signature + digital signature — RSA-2048 / SHA-256, certificate issued per user": "توقيع إلكتروني + توقيع رقمي — RSA-2048 / SHA-256 وشهادة لكل مستخدم",
+    "Documents I signed": "مستندات وقّعتها", "Signature type": "نوع التوقيع", "Certificate valid until": "الشهادة سارية حتى", "All signatures in EDMS": "كل التوقيعات في النظام",
+    "✍️ My signature": "✍️ توقيعي", "🔐 PIN & certificate": "🔐 الرمز والشهادة", "📜 Documents I signed": "📜 مستندات وقّعتها", "✅ Verify a document": "✅ التحقق من مستند",
+    "Current signature": "التوقيع الحالي", "Change it": "تغييره", "Upload an image of my signature": "رفع صورة توقيعي", "Generate from my typed name": "إنشاء من اسمي المكتوب",
+    "Signature image": "صورة التوقيع", "Confirm with your signature PIN": "أكّد برمز التوقيع", "💾 Use this signature": "💾 استخدام هذا التوقيع",
+    "My digital certificate": "شهادتي الرقمية", "⬇ Download certificate (.pem)": "⬇ تنزيل الشهادة (.pem)", "Change PIN": "تغيير الرمز", "Current PIN": "الرمز الحالي",
+    "New PIN (4–12 characters)": "الرمز الجديد (٤–١٢ خانة)", "Repeat new PIN": "أعد الرمز الجديد", "🔐 Change PIN": "🔐 تغيير الرمز",
+    "Signed document": "مستند موقّع", "⬇ Download signed PDF (with signature page)": "⬇ تنزيل PDF موقّع (مع صفحة التوقيعات)",
+    "Signature PIN": "رمز التوقيع", "✍ Sign & Approve": "✍ توقيع واعتماد", "Valid": "صالح",
+})
