@@ -270,7 +270,7 @@ def alerts_bar(current, prof, allowed, bc):
     unread = db_ext.get_notifications(current, only_unread=True)
     n = len(unread)
     st.markdown("""<style>
-    .st-key-alertbar{position:fixed!important;top:10px;right:64px;z-index:1000;display:flex!important;flex-direction:row!important;flex-wrap:nowrap;justify-content:flex-end;width:auto!important;
+    .st-key-alertbar{position:fixed!important;top:10px;right:64px;z-index:1000000;display:flex!important;flex-direction:row!important;flex-wrap:nowrap;justify-content:flex-end;width:auto!important;
       align-items:center;gap:10px!important;background:rgba(244,246,250,.95);backdrop-filter:blur(6px);padding:5px 10px;border-radius:34px;border:1px solid #E3E8F0;box-shadow:0 4px 14px rgba(31,56,100,.12)}
     @media (max-width:768px){.st-key-alertbar{position:static!important;margin-bottom:6px;flex-wrap:wrap;border-radius:14px}}
     .st-key-alertbar>div{width:auto!important;flex:0 0 auto!important}
