@@ -63,6 +63,8 @@ def init_ext():
     wfdesign.init()
     import numbering
     numbering.init()
+    import delegation
+    delegation.init()
     import letter_templates
     letter_templates.init()
     import accounts

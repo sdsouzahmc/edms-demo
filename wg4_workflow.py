@@ -20,7 +20,14 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(["📥 My Approval Queue", "📊 Workflow
                                         "🛠 Workflow Designer", "⚡ Ad-hoc Routing"])
 
 with tab1:
-    pending = db.get_pending_for_assignee(profile["dept"], is_admin)
+    import delegation
+    pending = delegation.pending_for_user(theme.current_user())
+    _away = delegation.is_away(theme.current_user())
+    if _away:
+        st.warning(f"🏖 You are marked out of office until **{_away['end_date']}** — your approvals are visible to **{_away['delegate']}**. "
+                   "Manage on page 19 · Approval Delegation.")
+    for _r in delegation.covering(theme.current_user()):
+        st.info(f"🤝 Covering for **{_r['delegator']}** until {_r['end_date']} — their approvals are listed below with a delegation tag.")
     st.markdown(f"**{len(pending)}** item(s) awaiting action" +
                 (" (Administrator view — all departments)" if is_admin else f" for **{profile['dept']}**"))
     st.write("")
@@ -35,6 +42,7 @@ with tab1:
             Stage: <b>{w['stage']}</b> &nbsp;·&nbsp; Department: {w['department']} &nbsp;·&nbsp;
             Classification: {w['classification']}
             {(' &nbsp;·&nbsp; ⏱ SLA ' + str(w['sla_hours']) + 'h') if w['sla_hours'] else ''}{' &nbsp;·&nbsp; ✍ e-signature required' if w['esign_required'] else ''}
+            {('<br><span style="color:#1F6F78;font-weight:700">🏖 On behalf of ' + w['on_behalf_of'] + ' (delegation)</span>') if w.get('on_behalf_of') else ''}
             </div>
             """, unsafe_allow_html=True)
             cc1, cc2, cc3, cc4 = st.columns([1, 1, 1.4, 1.4])
@@ -42,7 +50,9 @@ with tab1:
                 if st.button("✅ Approve", key=f"appr_{w['id']}", type="primary"):
                     sig = db_ext.log_esign(w["document_id"], theme.current_user(), w["stage"])
                     db.advance_workflow(w["document_id"], "approve", theme.current_user(),
-                                         f"Approved via e-signature {sig}", workflow_id=w["id"])
+                                         f"Approved via e-signature {sig}" + (f" — on behalf of {w['on_behalf_of']}" if w.get("on_behalf_of") else ""), workflow_id=w["id"])
+                    if w.get("on_behalf_of"):
+                        delegation.record_action(w["document_id"], theme.current_user(), w["on_behalf_of"], "Approved", w["stage"])
                     nxt = db.get_document(w["document_id"])
                     for sub in set(db_ext.subscribers_of(w["document_id"], nxt["classification"])):
                         db_ext.notify(sub, f"{nxt['doc_code']} moved to {nxt['status']}.", w["document_id"], "approval")
@@ -63,7 +73,9 @@ with tab1:
             if st.session_state.get(f"reject_box_{w['id']}"):
                 reason = st.text_input("Rejection reason", key=f"reason_{w['id']}")
                 if st.button("Confirm Rejection", key=f"confirm_rej_{w['id']}"):
-                    db.advance_workflow(w["document_id"], "reject", theme.current_user(), reason or "No reason given", workflow_id=w["id"])
+                    db.advance_workflow(w["document_id"], "reject", theme.current_user(), (reason or "No reason given") + (f" — on behalf of {w['on_behalf_of']}" if w.get("on_behalf_of") else ""), workflow_id=w["id"])
+                    if w.get("on_behalf_of"):
+                        delegation.record_action(w["document_id"], theme.current_user(), w["on_behalf_of"], "Rejected", w["stage"])
                     st.session_state[f"reject_box_{w['id']}"] = False
                     st.rerun()
             st.divider()

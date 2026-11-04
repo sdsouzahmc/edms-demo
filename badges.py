@@ -11,9 +11,12 @@ def counts(user, dept, is_admin):
     except Exception:
         out["notif"] = 0
     try:
-        out["pending"] = len(db.get_pending_for_assignee(dept, is_admin))
+        import delegation
+        _p = delegation.pending_for_user(user)
+        out["pending"] = len(_p)
+        out["deleg"] = len([x for x in _p if x["on_behalf_of"]])
     except Exception:
-        out["pending"] = 0
+        out["pending"] = out["deleg"] = 0
     try:
         od = db_ext.overdue_approvals()
         out["overdue"] = len([r for r in od if is_admin or r["department"] == dept])
@@ -38,7 +41,7 @@ def counts(user, dept, is_admin):
 
 # key -> (label, emoji, colour, page key)
 CHIPS = [("notif", "Notifications", "🔔", "#C0603C", "9"), ("pending", "Awaiting approval", "✍️", "#1F3864", "4"),
-         ("overdue", "SLA overdue", "⏰", "#B00020", "4"), ("triage", "Triage queue", "📥", "#B8860B", "12"),
+         ("deleg", "Delegated to me", "🏖️", "#1F6F78", "19"), ("overdue", "SLA overdue", "⏰", "#B00020", "4"), ("triage", "Triage queue", "📥", "#B8860B", "12"),
          ("expiring", "Expiring ≤90d", "⌛", "#7B3FA0", "8"), ("holds", "Legal holds", "⚖️", "#2E8B8B", "5")]
 
 # sidebar menu page key -> count key

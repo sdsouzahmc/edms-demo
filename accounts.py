@@ -19,8 +19,9 @@ MODULES = {  # key -> (label, emoji, colour)
     "9": ("My Workspace", "💼", "#2E8B8B"), "10": ("Administration & Integrations", "⚙️", "#6B7280"), "11": ("RFP Coverage", "✅", "#2E7D32"),
     "12": ("Auto-Distribution", "📬", "#C0603C"), "13": ("Analytics & Insights", "📊", "#6C4FA3"), "14": ("User Management", "👥", "#1F6F78"),
     "15": ("Role Management", "🔐", "#B00020"), "16": ("Ask EDMS — Search Assistant", "🤖", "#2E8B8B"), "17": ("Workflow Designer", "🧩", "#6C4FA3"), "18": ("Numbering Rules", "🔢", "#B8860B"),
+    "19": ("Approval Delegation", "🏖️", "#1F6F78"),
 }
-ALL = [m for m in MODULES if m not in ("16", "17", "18")]   # 16 (assistant) is available to every signed-in role
+ALL = [m for m in MODULES if m not in ("16", "17", "18", "19")]   # 16 (assistant) is available to every signed-in role
 OPS = ["home", "1", "2", "3", "4", "6", "7", "8", "9", "12", "13"]
 MGR = ["home", "1", "3", "4", "6", "7", "9", "12", "13"]
 
@@ -143,8 +144,8 @@ def allowed_modules(user):
     conn.close()
     r = role(u["role"]) if u else None
     if not r:
-        return {"home", "16"}
-    return set(r["modules"]) | {"16"} | ({"17", "18"} if r.get("level") == "admin" else set())
+        return {"home", "16", "19"}
+    return set(r["modules"]) | {"16", "19"} | ({"17", "18"} if r.get("level") == "admin" else set())
 
 
 def has_perm(user, perm):
