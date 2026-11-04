@@ -237,22 +237,27 @@ def breadcrumb(key):
     """Home › Journey group › Page — Home and the group are clickable so the user can step back."""
     if key == "home" or key not in PAGE_FILES:
         return
+    import favs
+    me = current_user()
+    if st.session_state.get("_last_page") != key:         # count a visit once per navigation, not per rerun
+        st.session_state["_last_page"] = key
+        favs.track(me, key)
+    is_f = favs.is_fav(me, key)
     grp = next((g for g in GROUPS if key in g[3]), None)
     page = strip_no(tr(dict(NAV).get(key, key)))
-    st.markdown("""<style>.st-key-efs_bc{margin:-6px 0 10px 0}.st-key-efs_bc a,.st-key-efs_bc p{font-size:.82rem!important;margin:0!important;white-space:nowrap}
+    st.markdown("""<style>.st-key-efs_bc{margin:-6px 0 6px 0}.st-key-efs_bc{flex-direction:row!important;flex-wrap:wrap;align-items:center;gap:4px!important}.st-key-efs_bc>div{width:auto!important;flex:0 0 auto!important}.st-key-efs_bc button{margin-left:14px;padding:2px 12px;min-height:0;font-size:.8rem}.st-key-efs_bc a,.st-key-efs_bc p{font-size:.82rem!important;margin:0!important;white-space:nowrap}
     .st-key-efs_bc [data-testid=stPageLink] a{padding:2px 8px;border-radius:14px;background:#EEF3F8;color:#1F3864}
     .st-key-efs_bc [data-testid=stPageLink] a:hover{background:#DCE7F3}.efs-bc-sep{color:#9CA3AF;padding-top:3px}
     .efs-bc-cur{font-weight:700;color:#1F3864;padding:2px 8px}</style>""", unsafe_allow_html=True)
     with st.container(key="efs_bc"):
-        cols = st.columns([.9, .1, 1.9, .1, 3, 7]) if grp else st.columns([.9, .1, 3, 9])
-        cols[0].page_link(PAGE_FILES["home"], label=tr("Home"), icon="🏠")
-        i = 1
+        st.page_link(PAGE_FILES["home"], label=tr("Home"), icon="🏠")
         if grp:
-            cols[1].markdown("<div class='efs-bc-sep'>›</div>", unsafe_allow_html=True)
-            cols[2].page_link(PAGE_FILES[grp[3][0]], label=tr(grp[0]), icon=grp[1])
-            i = 3
-        cols[i].markdown("<div class='efs-bc-sep'>›</div>", unsafe_allow_html=True)
-        cols[i + 1].markdown(f"<div class='efs-bc-cur'>{page}</div>", unsafe_allow_html=True)
+            st.markdown("<span class='efs-bc-sep'>›</span>", unsafe_allow_html=True)
+            st.page_link(PAGE_FILES[grp[3][0]], label=tr(grp[0]), icon=grp[1])
+        st.markdown("<span class='efs-bc-sep'>›</span>", unsafe_allow_html=True)
+        st.markdown(f"<span class='efs-bc-cur'>{page}</span>", unsafe_allow_html=True)
+        st.button(("★ " + tr("In favourites")) if is_f else ("☆ " + tr("Add to favourites")), key="fav_toggle",
+                  help=tr("Pin this page to the top of your menu"), on_click=favs.toggle, args=(me, key))
 
 
 def userbar():
@@ -425,6 +430,9 @@ def sidebar_nav():
         f'.st-key-nav_{k} a {{ border-left: 5px solid {accounts.MODULES[k][2]}; background: {accounts.MODULES[k][2]}12; border-radius: 10px; margin: 2px 0; padding-left: 10px; }}'
         f'.st-key-nav_{k} a:hover {{ background: {accounts.MODULES[k][2]}26; }}' for k in accounts.MODULES)
     st.markdown(f"<style>{menu_css}"
+                ".st-key-favbox{background:#FFF8E1;border:1px solid #F1DFA1;border-radius:12px;padding:6px 8px 4px;margin:6px 0}"
+                ".efs-favh{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8A6D00;margin:2px 0 0 2px}"
+                ".st-key-favbox a{border-radius:8px}.st-key-favbox a p{font-weight:600;font-size:.8rem}"
                 ".st-key-navmenu a p { font-weight:600; font-size:.8rem; white-space:normal; line-height:1.15; }"
                 '[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"][aria-current="page"] { box-shadow: 0 0 0 2px #1F386433; }'
                 "</style>", unsafe_allow_html=True)
@@ -445,6 +453,22 @@ def sidebar_nav():
         if go and qs.strip():
             st.session_state["global_q"] = qs.strip()
             st.switch_page(PAGE_FILES["6"])
+        import favs as _fv
+        _fav = [k for k in _fv.favs(current) if k in allowed and k in PAGE_FILES]
+        _top = [k for k in _fv.most_used(current, 3, exclude=_fav) if k in allowed and k in PAGE_FILES]
+        _lb = dict(NAV)
+        if _fav or _top:
+            with st.container(key="favbox"):
+                if _fav:
+                    st.markdown(f'<div class="efs-favh">⭐ {tr("Favourites")}</div>', unsafe_allow_html=True)
+                    for k in _fav:
+                        with st.container(key=f"fav_{k}"):
+                            st.page_link(PAGE_FILES[k], label=_label(_lb[k]), icon=accounts.MODULES[k][1])
+                if _top:
+                    st.markdown(f'<div class="efs-favh">🔥 {tr("Most used")}</div>', unsafe_allow_html=True)
+                    for k in _top:
+                        with st.container(key=f"top_{k}"):
+                            st.page_link(PAGE_FILES[k], label=_label(_lb[k]), icon=accounts.MODULES[k][1])
         with st.container(key="navmenu"):
             _lbl = dict(NAV)
             with st.container(key="nav_home"):

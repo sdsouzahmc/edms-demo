@@ -519,3 +519,5 @@ AR_MAP.update({
 AR_MAP.update({"🧪 Demo scenario": "🧪 سيناريو العرض", "Sample document pack & demo journey": "حزمة المستندات النموذجية ورحلة العرض",
                "⬇ Download the sample pack (.zip)": "⬇ تنزيل الحزمة النموذجية (.zip)", "🚀 Load sample pack & run the demo journey": "🚀 تحميل الحزمة وتشغيل رحلة العرض",
                "Intake result": "نتيجة الاستلام", "Movement log": "سجل الحركة", "Sample file": "ملف نموذجي"})
+AR_MAP.update({"Favourites": "المفضلة", "Most used": "الأكثر استخداماً", "Add to favourites": "أضف إلى المفضلة", "In favourites": "في المفضلة",
+               "Pin this page to the top of your menu": "ثبّت هذه الصفحة أعلى القائمة", "Home": "الرئيسية"})
