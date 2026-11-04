@@ -4,6 +4,7 @@ import pandas as pd
 import db
 import db_ext
 import rfp_data
+import access
 import theme
 
 db.init_db()
@@ -24,7 +25,7 @@ shared_ids = db_ext.shared_with(profile["dept"])
 
 
 def can_see(d):
-    return is_admin or d["department"] == profile["dept"] or d["status"] == "Released" or d["id"] in shared_ids
+    return access.visible(d, user, profile["dept"], profile["role"], is_admin, shared_ids)
 
 
 tabs = st.tabs(["🛡️ Access Control (live)", "🙈 PII / PHI Masking", "🔐 Authentication Policy",
@@ -46,13 +47,15 @@ with tabs[0]:
     theme.metric_card("Confidential documents", len([d for d in all_docs if d["security_level"] == "Confidential"]), c3)
     st.write("")
     for d in visible[:40]:
-        own = is_admin or d["department"] == profile["dept"]
-        can_approve = is_admin or (own and profile.get("can_approve"))
+        lvl = access.level(d, user, profile["dept"], profile["role"], is_admin)
+        own = is_admin or d["department"] == profile["dept"] or lvl in ("Edit", "Approve", "Manage")
+        can_approve = is_admin or ((d["department"] == profile["dept"] or lvl in ("Approve", "Manage")) and profile.get("can_approve"))
+        restricted_tag = " · 🔒 restricted visibility" if d["access_mode"] == "restricted" else ""
         masked = d["security_level"] == "Confidential" and not own
         st.markdown(f"""
         <div class="efs-card">
         <b>{d['doc_code']} — {d['title']}</b><br>
-        {d['department']} · {d['security_level']} · {theme.pill(d['status'])}{' · 🔗 shared with your department' if d['id'] in shared_ids and not own else ''}<br>
+        {d['department']} · {d['security_level']}{restricted_tag}{(' · your access: ' + lvl) if lvl and not is_admin else ''} · {theme.pill(d['status'])}{' · 🔗 shared with your department' if d['id'] in shared_ids and not own else ''}<br>
         <span style="font-size:0.82rem;color:#6B7280">View: ✅ &nbsp; Edit: {"✅" if own else "🚫"} &nbsp; Approve: {"✅" if can_approve else "🚫"}
         {" &nbsp; 🔒 Confidential — metadata only" if masked else ""}</span>
         </div>""", unsafe_allow_html=True)

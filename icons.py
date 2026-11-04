@@ -46,7 +46,7 @@ ACTIONS = [
 ]
 
 PAGE_ICON = {"home": "home", "1": "inbox", "2": "scan", "3": "version", "4": "workflow", "5": "shield", "6": "search", "7": "audit",
-             "8": "archive", "9": "briefcase", "10": "settings", "11": "list", "12": "route", "13": "chart", "14": "users", "15": "key", "16": "search", "17": "workflow", "18": "list", "19": "users", "20": "share", "21": "archive", "22": "route", "23": "key"}
+             "8": "archive", "9": "briefcase", "10": "settings", "11": "list", "12": "route", "13": "chart", "14": "users", "15": "key", "16": "search", "17": "workflow", "18": "list", "19": "users", "20": "share", "21": "archive", "22": "route", "23": "key", "24": "key"}
 
 
 def svg(name, size=20, color="currentColor", stroke=1.8):

@@ -5,6 +5,7 @@ import db_ext
 import distribution as dist
 import assistant
 import icons
+import access
 import theme
 
 db.init_db()
@@ -19,7 +20,7 @@ shared_ids = db_ext.shared_with(profile["dept"])
 
 
 def allowed(d):
-    return is_admin or d["department"] == profile["dept"] or d["status"] in ("Released", "Archived") or d["id"] in shared_ids
+    return access.visible(d, user, profile["dept"], profile["role"], is_admin, shared_ids)
 
 
 st.markdown("""<style>

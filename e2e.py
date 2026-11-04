@@ -203,6 +203,41 @@ rqh = db.request_disposal(doc("12")["id"], "Noor Al-Kuwari", "try")
 T("Records", "Disposal of a document under legal hold must be blocked", rqh is False or not any(x["doc_code"] == CODES["12"] for x in db.get_disposal_requests("Pending Approval")),
   "request was accepted" if True else "")
 
+
+# =================================================================== AUTO PERMISSIONS
+import access, datetime as _dt
+def _vis(code_, user_):
+    d_ = db.get_document_by_code(code_); p_ = rfp_data.ROLES[user_]
+    return access.visible(d_, user_, p_["dept"], p_["role"], p_["level"] == "admin", db_ext.shared_with(p_["dept"]))
+ref = doc("06")
+T("Auto-permissions", "Every document got permissions automatically at registration", all(d_["access_mode"] for d_ in db.get_documents()))
+T("Auto-permissions", "Scanned patient referral -> Confidential + restricted by rule", ref["security_level"] == "Confidential" and ref["access_mode"] == "restricted")
+T("Auto-permissions", "Care team (Nursing, Records) can open it; Finance cannot", _vis(CODES["06"], "Hassan Al-Naimi") and _vis(CODES["06"], "Sara Al-Ansari") and not _vis(CODES["06"], "Fatima Al-Sulaiti"))
+T("Auto-permissions", "Administrator always sees restricted documents", _vis(CODES["06"], "Yusuf Al-Marri"))
+T("Auto-permissions", "Public press release visible to every department", _vis(CODES["13"], "Fatima Al-Sulaiti") and _vis(CODES["13"], "Noor Al-Kuwari"))
+T("Auto-permissions", "Contract: Legal manages, Finance can view", {(g["principal"], g["access"]) for g in access.permissions(doc("05")["id"])} >= {("Legal", "Manage"), ("Finance", "View")})
+T("Auto-permissions", "Audit trail records every automatic decision", any(a["action"] == "Permissions Auto-Applied" for a in db.get_audit_log(ref["id"])))
+T("Auto-permissions", "Secure-upload document also received permissions", db.get_document_by_code(good["code"])["access_mode"] is not None)
+access.grant(ref["id"], "dept", "Finance", "View", "Yusuf Al-Marri")
+T("Auto-permissions", "Manual grant opens a restricted document to Finance", _vis(CODES["06"], "Fatima Al-Sulaiti"))
+access.apply(ref["id"], "Re-applied", "Yusuf Al-Marri")
+T("Auto-permissions", "Re-applying rules keeps the manual grant", _vis(CODES["06"], "Fatima Al-Sulaiti"))
+mg_ = [p_ for p_ in access.permissions(ref["id"]) if p_["source"] == "manual"][0]; access.revoke(mg_["id"], "Yusuf Al-Marri")
+T("Auto-permissions", "Revoke removes the access again", not _vis(CODES["06"], "Fatima Al-Sulaiti"))
+access.grant(ref["id"], "user", "Fatima Al-Sulaiti", "View", "Yusuf Al-Marri", expires_days=1)
+cn_ = db.get_conn(); cn_.execute("UPDATE doc_permissions SET expires_at='2020-01-01' WHERE source='manual' AND document_id=?", (ref["id"],)); cn_.commit(); cn_.close()
+T("Auto-permissions", "Expired grant no longer gives access", not _vis(CODES["06"], "Fatima Al-Sulaiti"))
+r_ = [x for x in access.rules() if x["name"].startswith("Patient")][0]; access.set_enabled(r_["id"], False, "Yusuf Al-Marri")
+i_t, c_t = db.create_document("Patient transfer note", "Medical Records", "Internal", "Internal", "Medical Record", "Scan", "English", "patient transfer", "Sara Al-Ansari")
+T("Auto-permissions", "Disabled rule is not applied (no level raise, no rule grants)", db.get_document(i_t)["security_level"] == "Internal" and not any(p_["source"].startswith("rule: Patient") for p_ in access.permissions(i_t)))
+access.set_enabled(r_["id"], True, "Yusuf Al-Marri")
+i_t2, _c = db.create_document("Patient discharge note", "Medical Records", "Internal", "Public", "Medical Record", "Scan", "English", "patient discharge", "Sara Al-Ansari")
+T("Auto-permissions", "Rule raises security level to Confidential", db.get_document(i_t2)["security_level"] == "Confidential")
+i_t3, _c = db.create_document("Staff picnic poster", "Marketing", "Internal", "Restricted", "Marketing Material", "Upload", "English", "poster", "Sara Al-Ansari")
+T("Auto-permissions", "Security level is never lowered by a rule", db.get_document(i_t3)["security_level"] == "Restricted")
+ev_ = access.evaluate({"title": "salary review", "department": "HR", "doc_type": "Letter", "classification": "Internal", "source": "Upload", "security_level": "Internal", "body_text": ""})
+T("Auto-permissions", "Live preview: keyword 'salary' triggers the HR rule", ev_["restricted"] and any(r["name"].startswith("HR files") for r in ev_["matched"]))
+
 # =================================================================== FOLDERS
 by, kids = fo.index()
 T("Folders", "HR contracts folder restricted; Finance denied, HR allowed",

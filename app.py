@@ -21,7 +21,9 @@ wfdesign.seed_samples()
 open(_marker, 'w').write('rfp2')
 
 import demo_journey
-demo_journey.auto_load()   # sample documents + their movement are present from the first visit
+demo_journey.auto_load()
+import access
+access.backfill()   # sample documents + their movement are present from the first visit
 
 # public secure-exchange portal: opened from an emailed link, no EDMS login
 _x = st.query_params.get("x")
@@ -60,6 +62,7 @@ pages = [
     st.Page("wg20_exchange.py", title="20 · Secure Exchange"),
     st.Page("wg21_folders.py", title="21 · Folders & Classification"),
     st.Page("wg22_migration.py", title="22 · Data Migration"),
+    st.Page("wg24_autopermissions.py", title="24 · Access Automation"),
     st.Page("wg23_signature.py", title="23 · My Signature & Certificate"),
 ]
 

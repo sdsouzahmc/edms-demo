@@ -529,3 +529,8 @@ AR_MAP.update({"Quick actions": "إجراءات سريعة", "Approvals waiting 
                "You are all caught up.": "لا توجد إشعارات جديدة.", "Mark all as read": "تعليم الكل كمقروء", "Open all notifications": "فتح كل الإشعارات"})
 AR_MAP.update({"Expand all": "توسيع الكل", "Collapse all": "طي الكل"})
 AR_MAP.update({"Remove from favourites": "إزالة من المفضلة", "Remove from Most used": "إزالة من الأكثر استخداماً", "Restore removed shortcuts": "استعادة الاختصارات المحذوفة"})
+AR_MAP.update({"24 · Access Automation": "24 · أتمتة الصلاحيات", "Access Automation": "أتمتة الصلاحيات",
+               "Permissions are applied automatically the moment a document is uploaded, scanned, created or received": "تُطبَّق الصلاحيات تلقائياً لحظة رفع المستند أو مسحه أو إنشائه أو استلامه",
+               "Permissions set by rules": "صلاحيات مطبّقة بالقواعد", "Restricted visibility": "رؤية مقيّدة", "Active rules": "قواعد فعّالة", "Manual grants": "منح يدوية",
+               "📜 Rules": "📜 القواعد", "🧪 Try it — live preview": "🧪 جرّب — معاينة مباشرة", "📄 Document permissions": "📄 صلاحيات المستند",
+               "🕘 Applied automatically": "🕘 المطبّق تلقائياً", "ℹ️ How it works": "ℹ️ كيف يعمل"})

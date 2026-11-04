@@ -7,6 +7,7 @@ import db_ext
 import distribution as dist
 import rfp_data
 import search_engine as se
+import access
 import theme
 
 db.init_db()
@@ -23,7 +24,7 @@ idx = se.ensure_index()
 
 
 def allowed(d):
-    return is_admin or d["department"] == profile["dept"] or d["status"] in ("Released", "Archived") or d["id"] in shared_ids
+    return access.visible(d, user, profile["dept"], profile["role"], is_admin, shared_ids)
 
 
 tabs = st.tabs(["🔎 Search", "🌳 Browse Classification Tree", "🕘 History & Saved Searches"])
@@ -184,8 +185,7 @@ with tabs[1]:
     st.markdown('<div class="efs-section-title">Alternative taxonomy — browse without folders</div>', unsafe_allow_html=True)
     st.caption("Documents are classified against a multi-level classification tree and can be browsed independently of the "
                "folder hierarchy, with no duplication of the underlying document.")
-    docs = [d for d in db.get_documents() if is_admin or d["department"] == profile["dept"] or d["status"] in ("Released", "Archived")
-            or d["id"] in shared_ids]
+    docs = [d for d in db.get_documents() if allowed(d)]
     by_type = {}
     for d in docs:
         by_type.setdefault(d["doc_type"], []).append(d)

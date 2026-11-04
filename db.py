@@ -286,6 +286,11 @@ def create_document(title, department, classification, security_level, doc_type,
         folders.autofile(doc_id)
     except Exception:
         pass
+    try:                                   # automatic permissions: runs for every upload, scan, e-mail, import, secure upload and manual creation
+        import access
+        access.apply(doc_id, f"Created via {source}", "System")
+    except Exception:
+        pass
     log_audit(doc_id, created_by, "Created", f"{code} — {title}")
     return doc_id, code
 

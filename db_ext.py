@@ -15,6 +15,11 @@ def _c():
 
 
 def init_ext():
+    try:
+        import access
+        access.init()
+    except Exception:
+        pass
     conn = _c()
     conn.executescript("""
     CREATE TABLE IF NOT EXISTS bookmarks (id INTEGER PRIMARY KEY AUTOINCREMENT, user TEXT, document_id INTEGER, created_at TEXT);
