@@ -528,3 +528,4 @@ AR_MAP.update({"Quick actions": "إجراءات سريعة", "Approvals waiting 
                "Nothing needs your attention right now.": "لا يوجد ما يتطلب انتباهك الآن.", "New notifications": "إشعارات جديدة",
                "You are all caught up.": "لا توجد إشعارات جديدة.", "Mark all as read": "تعليم الكل كمقروء", "Open all notifications": "فتح كل الإشعارات"})
 AR_MAP.update({"Expand all": "توسيع الكل", "Collapse all": "طي الكل"})
+AR_MAP.update({"Remove from favourites": "إزالة من المفضلة", "Remove from Most used": "إزالة من الأكثر استخداماً", "Restore removed shortcuts": "استعادة الاختصارات المحذوفة"})

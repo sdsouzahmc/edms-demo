@@ -6,6 +6,7 @@ def _c():
     conn = db.get_conn()
     conn.executescript("""
     CREATE TABLE IF NOT EXISTS page_favs (user TEXT, page_key TEXT, ts TEXT, PRIMARY KEY (user, page_key));
+    CREATE TABLE IF NOT EXISTS page_hidden (user TEXT, page_key TEXT, PRIMARY KEY (user, page_key));
     CREATE TABLE IF NOT EXISTS page_usage (user TEXT, page_key TEXT, n INTEGER DEFAULT 0, last TEXT, PRIMARY KEY (user, page_key));
     """)
     return conn
@@ -40,9 +41,32 @@ def track(user, key):
     conn.close()
 
 
+def hidden(user):
+    conn = _c()
+    rows = [r["page_key"] for r in conn.execute("SELECT page_key FROM page_hidden WHERE user=?", (user,))]
+    conn.close()
+    return rows
+
+
+def hide(user, key):
+    """Remove a page from this user's 'Most used' list (it stays in the menu)."""
+    conn = _c()
+    conn.execute("INSERT OR IGNORE INTO page_hidden VALUES (?,?)", (user, key))
+    conn.commit()
+    conn.close()
+
+
+def unhide_all(user):
+    conn = _c()
+    conn.execute("DELETE FROM page_hidden WHERE user=?", (user,))
+    conn.commit()
+    conn.close()
+
+
 def most_used(user, limit=3, exclude=()):
     conn = _c()
     rows = [r["page_key"] for r in conn.execute(
         "SELECT page_key FROM page_usage WHERE user=? AND page_key!='home' ORDER BY n DESC, last DESC LIMIT 12", (user,))]
     conn.close()
-    return [k for k in rows if k not in exclude][:limit]
+    skip = set(exclude) | set(hidden(user))
+    return [k for k in rows if k not in skip][:limit]

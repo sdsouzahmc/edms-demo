@@ -511,7 +511,7 @@ def sidebar_nav():
                 ".st-key-menu_expand button,.st-key-menu_collapse button{min-height:0;padding:2px 4px;font-size:.72rem}"
                 ".st-key-favbox{background:#FFF8E1;border:1px solid #F1DFA1;border-radius:12px;padding:6px 8px 4px;margin:6px 0}"
                 ".efs-favh{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8A6D00;margin:2px 0 0 2px}"
-                ".st-key-favbox a{border-radius:8px}.st-key-favbox a p{font-weight:600;font-size:.8rem}"
+                ".st-key-favbox button{min-height:0;padding:0 6px;font-size:.75rem;border:none;background:transparent;color:#8A6D00}.st-key-fav_restore button{font-size:.7rem;border:1px dashed #E0CC84}.st-key-favbox a{border-radius:8px}.st-key-favbox a p{font-weight:600;font-size:.8rem}"
                 ".st-key-navmenu a p { font-weight:600; font-size:.8rem; white-space:normal; line-height:1.15; }"
                 '[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"][aria-current="page"] { box-shadow: 0 0 0 2px #1F386433; }'
                 "</style>", unsafe_allow_html=True)
@@ -536,18 +536,26 @@ def sidebar_nav():
         _fav = [k for k in _fv.favs(current) if k in allowed and k in PAGE_FILES]
         _top = [k for k in _fv.most_used(current, 3, exclude=_fav) if k in allowed and k in PAGE_FILES]
         _lb = dict(NAV)
-        if _fav or _top:
+        _hid = _fv.hidden(current)
+        if _fav or _top or _hid:
             with st.container(key="favbox"):
                 if _fav:
                     st.markdown(f'<div class="efs-favh">⭐ {tr("Favourites")}</div>', unsafe_allow_html=True)
                     for k in _fav:
-                        with st.container(key=f"fav_{k}"):
+                        c1, c2 = st.columns([6, 1], vertical_alignment="center")
+                        with c1, st.container(key=f"fav_{k}"):
                             st.page_link(PAGE_FILES[k], label=_label(_lb[k]), icon=accounts.MODULES[k][1])
+                        c2.button("✕", key=f"unfav_{k}", help=tr("Remove from favourites"), on_click=_fv.toggle, args=(current, k))
                 if _top:
                     st.markdown(f'<div class="efs-favh">🔥 {tr("Most used")}</div>', unsafe_allow_html=True)
                     for k in _top:
-                        with st.container(key=f"top_{k}"):
+                        c1, c2 = st.columns([6, 1], vertical_alignment="center")
+                        with c1, st.container(key=f"top_{k}"):
                             st.page_link(PAGE_FILES[k], label=_label(_lb[k]), icon=accounts.MODULES[k][1])
+                        c2.button("✕", key=f"hide_{k}", help=tr("Remove from Most used"), on_click=_fv.hide, args=(current, k))
+                if _hid:
+                    st.button("↺ " + tr("Restore removed shortcuts") + f" ({len(_hid)})", key="fav_restore", on_click=_fv.unhide_all,
+                              args=(current,), use_container_width=True)
         with st.container(key="navmenu"):
             _lbl = dict(NAV)
             with st.container(key="nav_home"):
