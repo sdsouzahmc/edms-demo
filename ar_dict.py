@@ -389,3 +389,10 @@ AR_MAP.update({"18 · Numbering Rules": "١٨ · قواعد الترقيم", "Nu
     "Preview": "معاينة", "Rules": "القواعد", "Counters & history": "العدّادات والسجل", "Where this is used": "أين يُستخدم", "Pattern": "النمط", "Counter resets": "إعادة العدّاد", "First number": "الرقم الأول",
     "Rule is active": "القاعدة مفعّلة", "💾 Save rule": "💾 حفظ القاعدة", "🗑 Delete rule": "🗑 حذف القاعدة", "Yearly": "سنوياً", "Monthly": "شهرياً", "Never": "أبداً", "Description": "الوصف",
     "🔎 Search the register": "🔎 البحث في السجل", "REFERENCE NUMBER THAT WILL BE ISSUED": "الرقم المرجعي الذي سيُصدر", "Next number": "الرقم التالي"})
+
+AR_MAP.update({"✍️ Draft from Template (Word)": "✍️ صياغة من قالب (Word)", "📂 Scan / Upload / Shared Folder": "📂 مسح / رفع / مجلد مشترك", "Template": "القالب", "Recipient name / title": "اسم/صفة المستلم",
+    "Recipient organisation": "جهة المستلم", "Subject": "الموضوع", "Signatory": "الموقِّع", "Live preview": "معاينة مباشرة", "Edit & issue": "تعديل وإصدار", "Template fields": "حقول القالب",
+    "⬇ Download draft as Word (.docx)": "⬇ تنزيل المسودة بصيغة Word (.docx)", "💾 Register & issue reference number": "💾 تسجيل وإصدار الرقم المرجعي", "Register as": "تسجيل كـ",
+    "📤 From your computer": "📤 من جهازك", "🗄️ From the shared scan folder (network share / watch folder)": "🗄️ من مجلد المسح المشترك (مشاركة الشبكة)", "Folder path on the server": "مسار المجلد على الخادم",
+    "🖨 Simulate scanner → folder (demo)": "🖨 محاكاة الماسح ← المجلد (عرض)", "Import only these (leave empty = all)": "استيراد هذه فقط (فارغ = الكل)", "Result": "النتيجة", "Reference": "المرجع",
+    "Routed to": "وُجّه إلى", "Text read by": "قُرئ النص بواسطة", "Words": "الكلمات", "File": "الملف", "Status": "الحالة"})

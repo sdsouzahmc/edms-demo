@@ -6,3 +6,5 @@ qrcode[pil]
 plotly
 pymupdf
 python-dateutil
+
+python-docx
