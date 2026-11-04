@@ -367,6 +367,24 @@ def _label(label):
     return (emoji + " " if emoji else "") + strip_no(tr(core))
 
 
+def _menu_set(mode):
+    st.session_state["menu_mode"] = mode
+    st.session_state["menu_ver"] = st.session_state.get("menu_ver", 0) + 1      # new widget identity -> expanders re-open/close
+
+
+def _current_page_key():
+    """Which page file is running right now (so its menu group stays open)."""
+    import sys, os
+    names = {v: k for k, v in PAGE_FILES.items()}
+    f = sys._getframe()
+    while f:
+        k = names.get(os.path.basename(f.f_code.co_filename))
+        if k:
+            return k
+        f = f.f_back
+    return None
+
+
 def _group_header(i, name, em, col):
     return (f'<div style="margin:12px 0 2px 2px;display:flex;align-items:center;gap:7px;font-size:.68rem;font-weight:800;letter-spacing:.06em;'
             f'text-transform:uppercase;color:{col}"><span style="background:{col};color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;'
@@ -483,7 +501,14 @@ def sidebar_nav():
     menu_css = "".join(
         f'.st-key-nav_{k} a {{ border-left: 5px solid {accounts.MODULES[k][2]}; background: {accounts.MODULES[k][2]}12; border-radius: 10px; margin: 2px 0; padding-left: 10px; }}'
         f'.st-key-nav_{k} a:hover {{ background: {accounts.MODULES[k][2]}26; }}' for k in accounts.MODULES)
-    st.markdown(f"<style>{menu_css}"
+    grp_css = "".join(
+        f".st-key-grp_{i} [data-testid=stExpander]{{border:none;background:transparent;margin:6px 0 0 0}}"
+        f".st-key-grp_{i} [data-testid=stExpander] summary{{padding:0 8px!important;min-height:30px!important;line-height:1.1;border-left:4px solid {g[2]};border-radius:8px;background:{g[2]}14}}"
+        f".st-key-grp_{i} [data-testid=stExpander] summary p{{margin:0!important;font-size:.74rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:{g[2]}}}"
+        f".st-key-grp_{i} [data-testid=stExpander] details>div{{padding:2px 0 0 4px}}"
+        for i, g in enumerate(GROUPS, start=1))
+    st.markdown(f"<style>{menu_css}{grp_css}"
+                ".st-key-menu_expand button,.st-key-menu_collapse button{min-height:0;padding:2px 4px;font-size:.72rem}"
                 ".st-key-favbox{background:#FFF8E1;border:1px solid #F1DFA1;border-radius:12px;padding:6px 8px 4px;margin:6px 0}"
                 ".efs-favh{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8A6D00;margin:2px 0 0 2px}"
                 ".st-key-favbox a{border-radius:8px}.st-key-favbox a p{font-weight:600;font-size:.8rem}"
@@ -527,15 +552,26 @@ def sidebar_nav():
             _lbl = dict(NAV)
             with st.container(key="nav_home"):
                 st.page_link(PAGE_FILES["home"], label=_label(_lbl["home"]), icon=accounts.MODULES["home"][1])
+            # ---- collapsible journey groups: "Expand all / Collapse all" + remembered state
+            cur = _current_page_key()
+            ver = st.session_state.get("menu_ver", 0)
+            mode = st.session_state.get("menu_mode", "all")
+            b1, b2 = st.columns(2)
+            b1.button("▾ " + tr("Expand all"), key="menu_expand", use_container_width=True, on_click=_menu_set, args=("all",))
+            b2.button("▸ " + tr("Collapse all"), key="menu_collapse", use_container_width=True, on_click=_menu_set, args=("none",))
             for gi, (gname, gem, gcol, gkeys) in enumerate(GROUPS, start=1):
                 vis = [k for k in gkeys if k in allowed]
                 if not vis:
                     continue
-                st.markdown(_group_header(gi, gname, gem, gcol), unsafe_allow_html=True)
-                for k in vis:
-                    with st.container(key=f"nav_{k}"):
-                        n = _bc.get(badges.MENU.get(k, ""), 0) if k in badges.MENU else 0
-                        st.page_link(PAGE_FILES[k], label=_label(_lbl[k]) + (f"  🔴 {n}" if n else ""), icon=accounts.MODULES[k][1])
+                tot = sum(_bc.get(badges.MENU.get(k, ""), 0) for k in vis if k in badges.MENU)
+                is_open = (mode == "all") or (cur in vis)
+                lab = f"{gem} {tr(gname)}" + (f"  🔴 {tot}" if tot else "") + "\u200b" * ver
+                with st.container(key=f"grp_{gi}"):
+                    with st.expander(lab, expanded=is_open):
+                        for k in vis:
+                            with st.container(key=f"nav_{k}"):
+                                n = _bc.get(badges.MENU.get(k, ""), 0) if k in badges.MENU else 0
+                                st.page_link(PAGE_FILES[k], label=_label(_lbl[k]) + (f"  🔴 {n}" if n else ""), icon=accounts.MODULES[k][1])
         st.divider()
         try:
             import db_ext

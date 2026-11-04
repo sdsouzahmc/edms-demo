@@ -527,3 +527,4 @@ AR_MAP.update({"Quick actions": "إجراءات سريعة", "Approvals waiting 
                "Awaiting approval": "بانتظار الموافقة", "SLA overdue": "تجاوز مدة الخدمة", "Inter-dept requests": "طلبات بين الإدارات",
                "Nothing needs your attention right now.": "لا يوجد ما يتطلب انتباهك الآن.", "New notifications": "إشعارات جديدة",
                "You are all caught up.": "لا توجد إشعارات جديدة.", "Mark all as read": "تعليم الكل كمقروء", "Open all notifications": "فتح كل الإشعارات"})
+AR_MAP.update({"Expand all": "توسيع الكل", "Collapse all": "طي الكل"})
