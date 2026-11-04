@@ -226,8 +226,7 @@ def topbar(title: str, subtitle: str = ""):
             <span class="efs-topicon">{ic}</span>
             <div><h1>{strip_no(tr(title))}</h1><div class="sub">{tr(subtitle)}</div></div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end"><div class="efs-nbs">{chips}</div>
-        <div class="efs-badge" style="display:flex;align-items:center;gap:10px;padding:6px 14px 6px 8px">{icons.avatar(current_user(), 34, "#2E8B8B")}<div style="line-height:1.2"><div style="font-weight:700;font-size:.9rem">{current_user()}</div><div style="opacity:.85">{prof['role']} · {prof['dept']}</div></div></div></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end"><div class="efs-nbs">{chips}</div></div>
     </div>
     """, unsafe_allow_html=True)
     breadcrumb(key)
@@ -260,7 +259,62 @@ def breadcrumb(key):
                   help=tr("Pin this page to the top of your menu"), on_click=favs.toggle, args=(me, key))
 
 
+def _mark_read(user):
+    import db_ext
+    db_ext.mark_all_read(user)
+
+
+def alerts_bar(current, prof, allowed, bc):
+    """Pinned strip (stays visible while scrolling): quick actions, alerts bell and the signed-in user."""
+    import accounts, badges, db_ext, icons
+    unread = db_ext.get_notifications(current, only_unread=True)
+    n = len(unread)
+    st.markdown("""<style>
+    .st-key-alertbar{position:fixed!important;top:10px;right:64px;z-index:1000;display:flex!important;flex-direction:row!important;flex-wrap:nowrap;justify-content:flex-end;width:auto!important;
+      align-items:center;gap:10px!important;background:rgba(244,246,250,.95);backdrop-filter:blur(6px);padding:5px 10px;border-radius:34px;border:1px solid #E3E8F0;box-shadow:0 4px 14px rgba(31,56,100,.12)}
+    @media (max-width:768px){.st-key-alertbar{position:static!important;margin-bottom:6px;flex-wrap:wrap;border-radius:14px}}
+    .st-key-alertbar>div{width:auto!important;flex:0 0 auto!important}
+    .st-key-alertbar button[kind=secondary],.st-key-alertbar [data-testid=stPopover] button{border-radius:20px;padding:3px 14px;min-height:0;font-weight:600}
+    .st-key-alertbar .efs-upill{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid #E3E8F0;border-radius:30px;padding:4px 14px 4px 5px}
+    .efs-arow{display:flex;gap:8px;font-size:.84rem;padding:5px 0;border-bottom:1px dashed #E5E7EB}.efs-arow .t{color:#9CA3AF;font-size:.72rem}
+    </style>""", unsafe_allow_html=True)
+    with st.container(key="alertbar"):
+        # ---- quick actions
+        items = [("4", "✍️", "Approvals waiting for me", bc.get("pending", 0)), ("1", "📥", "Register a new document", 0),
+                 ("6", "🔎", "Search documents", 0), ("20", "🔐", "Send securely / request upload", bc.get("xdept", 0)),
+                 ("12", "📬", "Triage queue", bc.get("triage", 0)), ("23", "🖋️", "My signature & PIN", 0), ("19", "🏖️", "Set a delegate (leave)", 0)]
+        with st.popover("⚡ " + tr("Quick actions")):
+            for k, em, lab, cnt in items:
+                if k in allowed and k in PAGE_FILES:
+                    st.page_link(PAGE_FILES[k], label=tr(lab) + (f"  ({cnt})" if cnt else ""), icon=em)
+        # ---- alerts bell
+        with st.popover(f"🔔 {n}" if n else "🔔"):
+            st.markdown(f"**{tr('Needs your attention')}**")
+            attn = [("✍️", "Awaiting approval", bc.get("pending", 0), "4"), ("⏰", "SLA overdue", bc.get("overdue", 0), "4"),
+                    ("🔁", "Inter-dept requests", bc.get("xdept", 0), "20"), ("📥", "Triage queue", bc.get("triage", 0), "12")]
+            shown = False
+            for em, lab, cnt, k in attn:
+                if cnt and k in allowed:
+                    shown = True
+                    st.page_link(PAGE_FILES[k], label=f"{tr(lab)} — {cnt}", icon=em)
+            if not shown:
+                st.caption(tr("Nothing needs your attention right now."))
+            st.markdown(f"**{tr('New notifications')}**")
+            if not unread:
+                st.caption(tr("You are all caught up."))
+            for r in unread[:6]:
+                st.markdown(f"<div class='efs-arow'><div>🔔</div><div>{r['message']}<div class='t'>{(r['ts'] or '')[:16]}</div></div></div>", unsafe_allow_html=True)
+            if unread:
+                st.button("✔ " + tr("Mark all as read"), key="alerts_markread", on_click=_mark_read, args=(current,), use_container_width=True)
+            if "9" in allowed:
+                st.page_link(PAGE_FILES["9"], label=tr("Open all notifications"), icon="📨")
+        # ---- user
+        st.markdown(f"<div class='efs-upill'>{icons.avatar(current, 30, '#2E8B8B')}<div style='line-height:1.15'><div style='font-weight:700;font-size:.85rem;color:{NAVY}'>{current}</div>"
+                    f"<div style='font-size:.7rem;color:{GREY}'>{prof['role']} · {prof['dept']}</div></div></div>", unsafe_allow_html=True)
+
+
 def userbar():
+    return                                   # the signed-in user now lives in the pinned alerts bar
     import icons
     prof = current_profile()
     st.markdown(f"""<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><div style="display:flex;align-items:center;gap:10px;background:#fff;
@@ -490,6 +544,7 @@ def sidebar_nav():
                 st.page_link(PAGE_FILES["9"], label=f"🔔 {unread} new notification(s)")
         except Exception:
             pass
+    alerts_bar(current, prof, allowed, _bc)
     # mobile-only quick menu (sidebar is collapsed on phones)
     with st.container(key="mobilenav"):
         with st.expander("☰ Menu · pages & account"):

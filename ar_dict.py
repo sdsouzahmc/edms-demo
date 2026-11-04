@@ -521,3 +521,9 @@ AR_MAP.update({"🧪 Demo scenario": "🧪 سيناريو العرض", "Sample d
                "Intake result": "نتيجة الاستلام", "Movement log": "سجل الحركة", "Sample file": "ملف نموذجي"})
 AR_MAP.update({"Favourites": "المفضلة", "Most used": "الأكثر استخداماً", "Add to favourites": "أضف إلى المفضلة", "In favourites": "في المفضلة",
                "Pin this page to the top of your menu": "ثبّت هذه الصفحة أعلى القائمة", "Home": "الرئيسية"})
+AR_MAP.update({"Quick actions": "إجراءات سريعة", "Approvals waiting for me": "موافقات بانتظاري", "Register a new document": "تسجيل مستند جديد",
+               "Search documents": "بحث في المستندات", "Send securely / request upload": "إرسال آمن / طلب رفع", "Triage queue": "قائمة الفرز",
+               "My signature & PIN": "توقيعي والرمز السري", "Set a delegate (leave)": "تعيين مفوَّض (إجازة)", "Needs your attention": "يتطلب انتباهك",
+               "Awaiting approval": "بانتظار الموافقة", "SLA overdue": "تجاوز مدة الخدمة", "Inter-dept requests": "طلبات بين الإدارات",
+               "Nothing needs your attention right now.": "لا يوجد ما يتطلب انتباهك الآن.", "New notifications": "إشعارات جديدة",
+               "You are all caught up.": "لا توجد إشعارات جديدة.", "Mark all as read": "تعليم الكل كمقروء", "Open all notifications": "فتح كل الإشعارات"})
