@@ -18,6 +18,11 @@ def counts(user, dept, is_admin):
     except Exception:
         out["pending"] = out["deleg"] = 0
     try:
+        import exchange
+        out["xdept"] = exchange.inbox_count(dept, is_admin)
+    except Exception:
+        out["xdept"] = 0
+    try:
         od = db_ext.overdue_approvals()
         out["overdue"] = len([r for r in od if is_admin or r["department"] == dept])
     except Exception:
@@ -41,8 +46,8 @@ def counts(user, dept, is_admin):
 
 # key -> (label, emoji, colour, page key)
 CHIPS = [("notif", "Notifications", "🔔", "#C0603C", "9"), ("pending", "Awaiting approval", "✍️", "#1F3864", "4"),
-         ("deleg", "Delegated to me", "🏖️", "#1F6F78", "19"), ("overdue", "SLA overdue", "⏰", "#B00020", "4"), ("triage", "Triage queue", "📥", "#B8860B", "12"),
+         ("deleg", "Delegated to me", "🏖️", "#1F6F78", "19"), ("xdept", "Inter-dept requests", "🔁", "#6C4FA3", "20"), ("overdue", "SLA overdue", "⏰", "#B00020", "4"), ("triage", "Triage queue", "📥", "#B8860B", "12"),
          ("expiring", "Expiring ≤90d", "⌛", "#7B3FA0", "8"), ("holds", "Legal holds", "⚖️", "#2E8B8B", "5")]
 
 # sidebar menu page key -> count key
-MENU = {"4": "pending", "9": "notif", "12": "triage", "8": "expiring"}
+MENU = {"4": "pending", "9": "notif", "12": "triage", "8": "expiring", "20": "xdept"}

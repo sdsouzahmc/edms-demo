@@ -20,6 +20,13 @@ import wfdesign
 wfdesign.seed_samples()
 open(_marker, 'w').write('rfp2')
 
+# public secure-exchange portal: opened from an emailed link, no EDMS login
+_x = st.query_params.get("x")
+if _x:
+    import external_portal
+    external_portal.render(_x)
+    st.stop()
+
 pages = [
     st.Page("home_view.py", title="Home", icon="🏠", default=True),
     st.Page("wg1_correspondence.py", title="1 · Correspondence & Intake"),
@@ -41,6 +48,7 @@ pages = [
     st.Page("wg17_workflow_designer.py", title="17 · Workflow Designer"),
     st.Page("wg18_numbering.py", title="18 · Numbering Rules"),
     st.Page("wg19_delegation.py", title="19 · Approval Delegation"),
+    st.Page("wg20_exchange.py", title="20 · Secure Exchange"),
 ]
 
 pg = st.navigation(pages, position="hidden")

@@ -65,6 +65,8 @@ def init_ext():
     numbering.init()
     import delegation
     delegation.init()
+    import exchange
+    exchange.init()
     import letter_templates
     letter_templates.init()
     import accounts
