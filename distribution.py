@@ -28,6 +28,14 @@ DEFAULT_RULES = [
 ]
 
 
+# a document's own title is the best evidence of its type
+TITLE_TYPES = [("policy", "Policy"), ("procedure", "Procedure"), ("minutes", "Memo"), ("agreement", "Vendor Agreement"), ("service contract", "Service Contract"),
+               ("tax invoice", "Invoice"), ("invoice", "Invoice"), ("purchase order", "Purchase Order"), ("press release", "Campaign Document"),
+               ("incident", "System Configuration"), ("calibration certificate", "Compliance Certificate"), ("audit report", "Audit Document"),
+               ("discharge summary", "Medical Record"), ("referral", "Medical Record"), ("circular", "Circular"), ("research protocol", "Research Protocol"),
+               ("فاتورة", "Invoice"), ("اتفاقية", "Vendor Agreement"), ("تعميم", "Circular")]
+
+
 def _c():
     c = db.get_conn()
     return c
@@ -100,10 +108,10 @@ def _count(term, text, words):
     n = len(re.findall(r"(?<![a-z0-9])" + re.escape(t), text))   # prefix-aware: 'licen' hits licence/license
     if n:
         return n
-    if " " not in t and len(t) >= 6:                  # OCR-tolerant fuzzy match
-        m = difflib.get_close_matches(t, words, n=1, cutoff=0.86)
-        if m:
-            return 1
+    if " " not in t and len(t) >= 7:                  # OCR-tolerant: same length, at most one wrong character
+        for w in words:
+            if len(w) == len(t) and w[0] == t[0] and sum(a != b for a, b in zip(w, t)) <= 1:
+                return 1
     return 0
 
 
@@ -122,17 +130,23 @@ def analyse(text, title="", sender="", rules=None):
                 matched.append(t)
                 score += min(n, 3)
         if matched:
-            hits.append({"rule": r, "matched": matched, "score": score + r["priority"] * 10})
+            hits.append({"rule": r, "matched": matched, "score": score + 6 * len(matched) + r["priority"] * 2})
     hits.sort(key=lambda h: -h["score"])
     if not hits:
         return {"hits": [], "primary": None, "copies": [], "doc_type": None, "classification": None}
     top = hits[0]["rule"]
+    dtype = top["doc_type"]
+    tl = (title or "").lower()
+    for k, v in TITLE_TYPES:
+        if k in tl:
+            dtype = v
+            break
     copies = []
     cand = _terms(top["copy_depts"]) + ([hits[1]["rule"]["primary_dept"]] if len(hits) > 1 else [])
     for d in cand:
         if d != top["primary_dept"] and d in rfp_data.DEPARTMENTS and d not in copies:
             copies.append(d)
-    return {"hits": hits, "primary": top["primary_dept"], "copies": copies[:3], "doc_type": top["doc_type"],
+    return {"hits": hits, "primary": top["primary_dept"], "copies": copies[:3], "doc_type": dtype,
             "classification": top["classification"]}
 
 

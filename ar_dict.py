@@ -515,3 +515,7 @@ AR_MAP.update({
     "Signed document": "مستند موقّع", "⬇ Download signed PDF (with signature page)": "⬇ تنزيل PDF موقّع (مع صفحة التوقيعات)",
     "Signature PIN": "رمز التوقيع", "✍ Sign & Approve": "✍ توقيع واعتماد", "Valid": "صالح",
 })
+
+AR_MAP.update({"🧪 Demo scenario": "🧪 سيناريو العرض", "Sample document pack & demo journey": "حزمة المستندات النموذجية ورحلة العرض",
+               "⬇ Download the sample pack (.zip)": "⬇ تنزيل الحزمة النموذجية (.zip)", "🚀 Load sample pack & run the demo journey": "🚀 تحميل الحزمة وتشغيل رحلة العرض",
+               "Intake result": "نتيجة الاستلام", "Movement log": "سجل الحركة", "Sample file": "ملف نموذجي"})

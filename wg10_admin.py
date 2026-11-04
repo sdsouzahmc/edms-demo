@@ -17,7 +17,7 @@ if not theme.is_admin():
                "to make changes; other roles have read-only access.")
 
 tabs = st.tabs(["🔌 Integrations", "👥 Identity (AD / SSO)", "🏥 Sites, Storage & HA / DR", "💾 Backup & Recovery",
-                "📈 Monitoring"])
+                "📈 Monitoring", "🧪 Demo scenario"])
 
 with tabs[0]:
     st.markdown(f"{theme.tag_ms('Outlook · Office 365 · SharePoint')} {theme.tag_custom('EMR secure upload · REST API')}",
@@ -171,3 +171,35 @@ with tabs[4]:
     fig = go.Figure(go.Bar(x=list(dept.values()), y=list(dept.keys()), orientation="h", marker=dict(color="#2E8B8B")))
     fig.update_layout(height=max(260, 24 * len(dept)), margin=dict(t=10, b=10), title="Content volume by department")
     st.plotly_chart(fig, use_container_width=True)
+
+
+with tabs[5]:
+    import pandas as pd
+    import demo_journey as dj
+    st.markdown('<div class="efs-section-title">Sample document pack & demo journey</div>', unsafe_allow_html=True)
+    st.caption("23 realistic, fully fictional documents (English and Arabic; typed and scanned; plus a duplicate and a corrupt file) are pushed through the real "
+               "pipeline: scan-folder intake → OCR → classification → routing → numbering → approvals with e-signatures → inter-department routing → secure links → versioning → archive / legal hold.")
+    files = dj.pack_files()
+    st.dataframe(pd.DataFrame({"Sample file": files}), use_container_width=True, hide_index=True, height=220)
+    c1, c2 = st.columns([1, 1])
+    c1.download_button("⬇ Download the sample pack (.zip)", dj.pack_zip(), "sample_document_pack.zip", "application/zip", key="dj_zip")
+    run_move = c2.checkbox("Also move documents through workflows (approve, reject, sign, release, archive…)", value=True, key="dj_move")
+    if st.button("🚀 Load sample pack & run the demo journey", type="primary", disabled=not theme.is_admin(), key="dj_go"):
+        with st.spinner("Scanning, OCR-ing, classifying and routing 23 files…"):
+            res, jlog = dj.run(theme.current_user(), run_move)
+        st.session_state["dj_res"] = (res, jlog)
+    if not theme.is_admin():
+        st.caption("Only an Administrator can load the pack.")
+    got = st.session_state.get("dj_res")
+    if got:
+        res, jlog = got
+        st.success(f"{sum(1 for r in res if r['status'] == 'Registered')} registered · "
+                   f"{sum(1 for r in res if r['status'].startswith('Skipped'))} skipped as duplicates · "
+                   f"{sum(1 for r in res if r['status'].startswith('Rejected'))} rejected as unreadable · {len(jlog)} workflow movements.")
+        st.markdown("**Intake result**")
+        st.dataframe(pd.DataFrame([{"File": r["file"], "Result": r["status"], "Reference": r.get("code", ""), "Routed to": r.get("routed", ""),
+                                    "Text by": r.get("method", "")} for r in res]), use_container_width=True, hide_index=True)
+        if jlog:
+            st.markdown("**Movement log**")
+            st.dataframe(pd.DataFrame(jlog, columns=["Document", "What happened"]), use_container_width=True, hide_index=True)
+        st.caption("Now open Workflow & Approvals, Document Control, Secure Exchange, Records, Analytics and the Audit trail to follow each document.")

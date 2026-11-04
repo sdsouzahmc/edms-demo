@@ -115,6 +115,9 @@ def register_file(name, data, user, origin, direction="Incoming", auto_route=Tru
     if len(data) > MAX_BYTES:
         return {"file": name, "status": "Skipped — larger than 10 MB", "code": "", "routed": "", "method": ""}
     text, method = extract_text(name, data)
+    if method.startswith("unreadable"):
+        db.log_audit(None, user, "Intake File Rejected", f"{name} via {origin}: {method}", "Denied")
+        return {"file": name, "status": "Rejected — unreadable or corrupt file (quarantined)", "code": "", "routed": "", "method": method}
     meta = extract_metadata(text) if text else {}
     title = auto_name(meta, os.path.splitext(name)[0]) or os.path.splitext(name)[0]
     dec = dist.analyse(text, title, meta.get("Sender", "")) if text else {"primary": None, "classification": None, "doc_type": None, "hits": [], "copies": []}
@@ -153,17 +156,22 @@ def import_folder(user, names=None, auto_route=True):
     return results
 
 
-def drop_samples():
+def drop_samples(limit=6):
     """Demo helper: place the sample scanned letters into the watch folder (simulates the scanner saving to the share)."""
     p = folder()
     os.makedirs(p, exist_ok=True)
     src = os.path.join(BASE, "assets")
-    n = 0
+    cands = []
     if os.path.isdir(src):
-        for f in sorted(os.listdir(src)):
-            if f.endswith(".png") and not os.path.exists(os.path.join(p, f)) and not os.path.exists(os.path.join(p, "processed", f)):
-                shutil.copy(os.path.join(src, f), os.path.join(p, f))
-                n += 1
-                if n >= 4:
-                    break
+        cands += [(os.path.join(src, f), f) for f in sorted(os.listdir(src)) if f.endswith(".png")]
+        pk = os.path.join(src, "sample_pack")
+        if os.path.isdir(pk):
+            cands += [(os.path.join(pk, f), f) for f in sorted(os.listdir(pk)) if f.endswith(".pdf")]
+    n = 0
+    for path_, f in cands:
+        if not os.path.exists(os.path.join(p, f)) and not os.path.exists(os.path.join(p, "processed", f)):
+            shutil.copy(path_, os.path.join(p, f))
+            n += 1
+            if n >= limit:
+                break
     return n

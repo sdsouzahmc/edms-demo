@@ -360,6 +360,9 @@ def checkout_document(doc_id, actor):
     conn = get_conn()
     row = conn.execute("SELECT checked_out_by FROM versions WHERE document_id=? ORDER BY id DESC LIMIT 1",
                         (doc_id,)).fetchone()
+    if row and row["checked_out_by"] and row["checked_out_by"] != actor:
+        conn.close()
+        return False                                   # already locked by someone else
     conn.execute("UPDATE versions SET checked_out_by=? WHERE id = (SELECT id FROM versions WHERE document_id=? ORDER BY id DESC LIMIT 1)",
                  (actor, doc_id))
     conn.commit()
@@ -552,6 +555,11 @@ def toggle_legal_hold(doc_id, actor, hold: bool):
 def request_disposal(doc_id, actor, reason):
     conn = get_conn()
     cur = conn.cursor()
+    held = cur.execute("SELECT legal_hold FROM documents WHERE id=?", (doc_id,)).fetchone()
+    if held and held["legal_hold"]:
+        conn.close()
+        log_audit(doc_id, actor, "Disposal Blocked", "Document is under legal hold")
+        return False
     cur.execute("""
         INSERT INTO disposal_requests (document_id, requested_by, requested_at, reason, status)
         VALUES (?,?,?,?,?)
@@ -559,6 +567,7 @@ def request_disposal(doc_id, actor, reason):
     conn.commit()
     conn.close()
     log_audit(doc_id, actor, "Disposal Requested", reason)
+    return True
 
 
 def get_disposal_requests(status=None):

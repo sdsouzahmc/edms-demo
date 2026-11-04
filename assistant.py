@@ -36,6 +36,8 @@ WORDMAP = {"pending": "", "awaiting": "", "released": "", "approved": "", "publi
 
 def interpret(q):
     ql = q.lower().strip()
+    hold_q = "legal hold" in ql or "حجز" in ql
+    ql = ql.replace("legal hold", " hold ")          # 'legal' here is not the Legal department
     f = {"dept": [], "status": [], "level": None, "ocr": False, "expiring": False, "hold": False, "lang": None,
          "newest": False, "count": False}
     for alias, dept in sorted(DEPT_ALIAS.items(), key=lambda x: -len(x[0])):
@@ -52,7 +54,7 @@ def interpret(q):
             f["level"] = lv
     f["ocr"] = bool(re.search(r"\b(scanned|scans?|ocr)\b|ممسوح", ql))
     f["expiring"] = bool(re.search(r"\bexpir|\bdue\b|renew|تنتهي|منتهي", ql))
-    f["hold"] = "legal hold" in ql or "حجز" in ql
+    f["hold"] = hold_q or "حجز" in ql
     f["lang"] = "Arabic" if ("arabic" in ql or "بالعربية" in ql) else ("English" if "english" in ql else None)
     f["newest"] = bool(re.search(r"\b(latest|recent|newest|last)\b", ql))
     f["count"] = bool(re.search(r"\bhow many\b|\bcount\b|\bnumber of\b|كم عدد", ql))
