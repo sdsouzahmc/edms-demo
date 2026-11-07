@@ -2,7 +2,14 @@ import streamlit as st
 import db
 import db_ext
 
-st.set_page_config(page_title="EDMS Demo", page_icon="📁", layout="wide")
+import os as _o
+try:
+    from PIL import Image as _Im
+    _p = _o.path.join(_o.path.dirname(__file__), "docorbit_icon.png")
+    _icon = _Im.open(_p if _o.path.exists(_p) else _o.path.join(_o.path.dirname(__file__), "assets", "docorbit_icon.png"))
+except Exception:
+    _icon = "📁"
+st.set_page_config(page_title="DocOrbit 360", page_icon=_icon, layout="wide")
 import os, glob
 # one-time reset if a database from an older demo version is present
 _marker = os.path.join(db.DB_DIR, ".seed_rfp2")

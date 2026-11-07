@@ -402,6 +402,18 @@ def _lang_switch(key="lang_radio"):
              on_change=_on_lang, args=(key,))
 
 
+
+import base64 as _b64, os as _os
+def asset_uri(name):
+    p = _os.path.join(_os.path.dirname(__file__), "assets", name)
+    if not _os.path.exists(p):
+        p = _os.path.join(_os.path.dirname(__file__), name)
+    try:
+        mime = "image/png" if name.endswith(".png") else "image/jpeg"
+        return f"data:{mime};base64," + _b64.b64encode(open(p, "rb").read()).decode()
+    except OSError:
+        return ""
+
 def _login_screen():
     import accounts
     import icons
@@ -421,9 +433,10 @@ def _login_screen():
     left, right = st.columns([1, 1.15], gap="large")
     with left:
         st.markdown(f"""<div class="efs-lhero">
-        <div style="display:flex;align-items:center;gap:10px">{icons.chip("database", "#7FD1C7", 44)}<div style="font-weight:800;font-size:1.25rem;line-height:1.1">EDMS<br><span style="font-weight:500;font-size:.78rem;opacity:.8">Enterprise Document Management</span></div></div>
+        <img src="{asset_uri('docorbit_logo.png')}" style="height:44px;border-radius:8px">
+        <div style="font-weight:500;font-size:.8rem;opacity:.8;margin-top:6px">Enterprise Document Management System</div>
         <h1>Sign in to the document workspace</h1>
-        <div style="height:150px">{icons.hero_art()}</div>
+        <img src="{asset_uri('docorbit_hero.jpg')}" style="width:100%;border-radius:12px;margin:4px 0">
         <ul style="padding-left:18px;margin-top:10px"><li>Role-based menus — each role sees only what it needs</li>
         <li>Every sign-in and change is written to the immutable audit trail</li><li>Account lock-out after repeated failures</li></ul></div>""", unsafe_allow_html=True)
     with right:
@@ -520,7 +533,7 @@ def sidebar_nav():
     with st.sidebar:
         st.markdown(f'<div style="font-size:.7rem;color:{GREY};margin:-6px 0 -10px 2px">🌐 {tr("Language")}</div>', unsafe_allow_html=True)
         _lang_switch()
-        st.markdown(f'<div style="display:flex;align-items:center;gap:10px;margin:4px 0 8px 0">{_ic.chip("database", "#2E8B8B", 38)}<div style="font-weight:800;color:{NAVY};font-size:1.15rem;line-height:1.1">EDMS<br><span style="font-weight:500;font-size:.72rem;color:{GREY}">Working Demo</span></div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="display:flex;align-items:center;gap:10px;margin:4px 0 8px 0"><img src="{asset_uri('docorbit_logo.png')}" style="height:40px;border-radius:8px"><div style="font-weight:500;font-size:.7rem;color:{GREY};line-height:1.2">Enterprise Document<br>Management</div></div>', unsafe_allow_html=True)
         st.markdown(f"""<div style="background:linear-gradient(120deg,{NAVY} 0%,#1F6F78 100%);border-radius:14px;padding:12px 14px;color:#fff;display:flex;gap:10px;align-items:center;box-shadow:0 4px 12px rgba(21,40,69,.2)">
         {_ic.avatar(current, 42, rinfo['color'])}<div style="line-height:1.25"><div style="font-weight:700">{current}</div>
         <div style="font-size:.74rem;opacity:.9">{prof['role']}</div><div style="font-size:.7rem;opacity:.75">{prof['dept']}</div></div></div>""", unsafe_allow_html=True)
